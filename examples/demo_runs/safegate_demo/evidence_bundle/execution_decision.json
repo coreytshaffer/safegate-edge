@@ -1,0 +1,19 @@
+{
+  "decision_id": "dec-e5f55c67",
+  "action_id": "act-123456",
+  "action_hash": "sha256:92a4ec768c66a81dcd43cc1658b0d1c509fff3c499fe63bdbd63630b3c9caa49",
+  "approval_id": "apr-82c077e0",
+  "verification_id": "vrf-5691141e746e474f95f57a49b04a96bb",
+  "decision": "blocked",
+  "reason": "action_hash_mismatch",
+  "decided_at": "2026-06-30T07:37:02.952602+00:00",
+  "execution_mode": "simulated",
+  "execution_status": "blocked_before_execution",
+  "policy_id": null,
+  "verifier_version": "0.1.0",
+  "details": {
+    "expected_hash": "sha256:22e06d8e65667e9582c1697fbd302d0ca0f028e61bb9dc9ab6c43541cd5b7069",
+    "actual_hash": "sha256:92a4ec768c66a81dcd43cc1658b0d1c509fff3c499fe63bdbd63630b3c9caa49"
+  },
+  "schema_version": "1.0"
+}

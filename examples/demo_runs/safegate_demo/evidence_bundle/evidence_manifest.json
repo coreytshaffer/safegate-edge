@@ -1,0 +1,31 @@
+{
+  "schema_version": "evidence_manifest.v1",
+  "exported_at": "2026-06-30T07:37:02.956344Z",
+  "files": [
+    {
+      "path": "action_request.json",
+      "sha256": "sha256:7e9d51241876c0fff7c967ec7954e893997e69add9d724c767810256c5b219f0"
+    },
+    {
+      "path": "approval_packet.json",
+      "sha256": "sha256:d33afe5b0c71cf19783d6fcc4c9fab291e5587d44a9303c6e73ccbef63d0f5ba"
+    },
+    {
+      "path": "verification_result.json",
+      "sha256": "sha256:fd87ca320d5a67e604eb2c15f35dbe1b00fa3aa523fa630567931e437b1cf091"
+    },
+    {
+      "path": "execution_decision.json",
+      "sha256": "sha256:5ab22e2a0a038eaca1c99fcb091c6a91914bdc986f8f713934b29c28ba57316c"
+    },
+    {
+      "path": "policy_snapshot.json",
+      "sha256": "sha256:5eb11c16ba8d3f995a8c853f493797c3b34c6d0331fa00cfb7532dd6fdba8f9c"
+    },
+    {
+      "path": "observe_events.jsonl",
+      "sha256": "sha256:a7cfac09a1ab8fe87c7cc3ebaf14095b5517d86c1ec48e02d0a10fa4f3cf60cb"
+    }
+  ],
+  "bundle_hash": "sha256:5d2c95c2401b7fa14f8acefa46987f2737fc4ba88134b530a7511fee0c69e0f2"
+}

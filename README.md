@@ -7,37 +7,21 @@ SafeGate Edge is a local approval gateway for AI agents and automation workflows
 SafeGate currently supports simulated approval packets for deterministic demos and tests. SGE-007 introduces the boundary where future hardware-backed approvals will plug in. Policies can mark an action as requiring hardware attestation, but real hardware attestation verification is not yet implemented.
 SafeGate is hardware-ready, not hardware-verified yet.
 
-## The Hash Contract
+## Concepts
 
-The heart of SafeGate Edge is the **canonical action hash**. Before an action can be approved, it must be hashed. This ensures that the approval is cryptographically bound to the *exact* action requested. If the action is mutated in any way after approval, the hash changes, and the gateway will block the action.
+### The Canonical Action Hash
+SafeGate enforces deterministic safety by hashing every action request into a strict canonical format. A human approver signs this hash. If the agent changes *anything*—even reordering keys or changing whitespace in a way that alters the canonical representation—the hash changes and the approval is rejected.
 
-### Included Fields
-
-An `ActionRequest` must include the following fields, all of which are included in the hash:
-- `action_id`: Unique identifier for the action.
-- `action_type`: Category of the action (e.g. "delete_customer_exports").
-- `requester`: Identity of the agent or process requesting the action.
-- `command`: The exact command or function to be executed.
-- `target`: The target resource (file path, DB record, etc.).
-- `working_directory`: The directory in which the command will run.
-- `risk_level`: The risk classification (e.g. "high").
-- `created_at`: ISO 8601 timestamp of when the request was made.
-- `expires_at`: ISO 8601 timestamp of when the request expires.
-- `metadata`: Additional context, provided as a nested dictionary.
-
-### Canonicalization Algorithm
-
-To ensure deterministic hashing across different platforms and programming languages, the `ActionRequest` JSON object is canonicalized before hashing using the following rules:
-
-1. **Sort Keys**: All keys in the JSON object (and any nested objects) are sorted lexicographically.
-2. **Stable Separators**: No whitespace is allowed around separators. The compact form `","` and `":"` is strictly used.
-3. **UTF-8 Encoding**: The JSON string is encoded to UTF-8 without escaping non-ASCII characters (`ensure_ascii=False`).
+The canonical representation ensures:
+- Consistent key ordering
+- No extraneous whitespace
+- Deterministic payload structure
 
 The resulting byte string is then hashed using SHA-256, and prefixed with `sha256:` to produce the final digest (e.g., `sha256:abcd...`).
 
-## End-to-End Demo
+## Quickstart: End-to-End Demo
 
-Run:
+Run the end-to-end demo to see SafeGate in action:
 
 ```bash
 python -m safegate_edge.cli demo run --output-dir examples/demo_runs/safegate_demo
@@ -45,9 +29,18 @@ python -m safegate_edge.cli demo run --output-dir examples/demo_runs/safegate_de
 
 The demo creates a human review packet, generates approved and denied approval packets, verifies the original action, verifies a mutated action, verifies a denied approval, and exports a reviewer-facing evidence bundle.
 
+## Documentation
+
+- **[Reviewer Packet](docs/reviewer_packet.md)**: High-level overview of what this prototype proves.
+- **[Demo Walkthrough](docs/demo_walkthrough.md)**: Step-by-step guide to the demo artifacts.
+- **[Architecture](docs/architecture.md)**: System design and verification loop.
+- **[Threat Model](docs/threat_model.md)**: Detailed breakdown of in-scope protections and out-of-scope boundaries.
+- **[Limitations](docs/limitations.md)**: Honest accounting of the prototype's current state.
+- **[Release Notes](docs/release_notes.md)**: Changelog and milestones.
+
 ## Usage
 
-The SafeGate CLI allows you to compute hashes and verify approvals.
+The SafeGate CLI allows you to compute hashes, generate reviews, and verify approvals.
 
 ### 1. Compute a Hash
 ```bash

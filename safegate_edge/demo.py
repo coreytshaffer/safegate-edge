@@ -19,6 +19,34 @@ def _write_json(filepath: str, data: Any) -> None:
         json.dump(data, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
+def _handle_remove_readonly(func, path, exc_info):
+    import stat
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+def clean_demo_output_dir(output_dir: str) -> None:
+    os.makedirs(output_dir, exist_ok=True)
+
+    known_files = [
+        "review_packet.json",
+        "generated_approval.json",
+        "generated_denied_approval.json",
+        "verify_original_allowed.json",
+        "verify_mutated_blocked.json",
+        "verify_denied_blocked.json",
+        "demo_summary.json",
+        "README_DEMO.md",
+    ]
+
+    for name in known_files:
+        path = os.path.join(output_dir, name)
+        if os.path.exists(path):
+            os.remove(path)
+
+    evidence_dir = os.path.join(output_dir, "evidence_bundle")
+    if os.path.exists(evidence_dir):
+        shutil.rmtree(evidence_dir, onerror=_handle_remove_readonly)
+
 def run_demo(
     output_dir: str,
     original_action_path: str = "examples/action_requests/delete_customer_exports_original.json",
@@ -26,8 +54,8 @@ def run_demo(
     policy_path: str = "examples/config/default_policy.json",
     approvers_path: str = "examples/config/approvers.json"
 ) -> None:
-    # Safely create/clean output dir
-    os.makedirs(output_dir, exist_ok=True)
+    # Safely clean/create targeted output files and directories
+    clean_demo_output_dir(output_dir)
     
     # 1. Load data
     original_action = _load_json(original_action_path)
@@ -80,9 +108,6 @@ def run_demo(
 
     # 11. Export evidence bundle for the mutated blocked path
     evidence_dir = os.path.join(output_dir, "evidence_bundle")
-    # Clean previous evidence_bundle if exists
-    if os.path.exists(evidence_dir):
-        shutil.rmtree(evidence_dir)
         
     chain = EventLogChain()
     chain.append("ACTION_REQUESTED", {"action": original_action}, original_action["action_id"])

@@ -1,0 +1,21 @@
+{
+  "schema_version": "verification_result.v1",
+  "verification_id": "vrf-5691141e746e474f95f57a49b04a96bb",
+  "action_id": "act-123456",
+  "action_hash": "sha256:92a4ec768c66a81dcd43cc1658b0d1c509fff3c499fe63bdbd63630b3c9caa49",
+  "approval_id": "apr-82c077e0",
+  "decision": "blocked",
+  "reason": "action_hash_mismatch",
+  "verified_at": "2026-06-30T07:37:02.951453Z",
+  "verifier_version": "0.1.0",
+  "policy_id": "default",
+  "policy_rule_id": "high-risk-approval",
+  "approval_required": true,
+  "approval_method": null,
+  "attestation_required": false,
+  "attestation_verified": false,
+  "details": {
+    "expected_hash": "sha256:22e06d8e65667e9582c1697fbd302d0ca0f028e61bb9dc9ab6c43541cd5b7069",
+    "actual_hash": "sha256:92a4ec768c66a81dcd43cc1658b0d1c509fff3c499fe63bdbd63630b3c9caa49"
+  }
+}
