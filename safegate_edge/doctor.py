@@ -96,6 +96,29 @@ def run_doctor_checks() -> List[CheckResult]:
         else:
             results.append(CheckResult("fingerprint_placeholder", "Placeholder approver fingerprint detected", "PASS", "No placeholder fingerprints detected."))
 
+        # 6a. Hardware attestation configuration
+        all_methods = set()
+        for a in active:
+            methods = a.get("approval_methods", [])
+            all_methods.update(methods)
+            
+        has_real_hardware = "hardware_security_key" in all_methods
+        
+        if not has_real_hardware:
+            results.append(CheckResult(
+                "hardware_attestation_configured", 
+                "Hardware attestation not configured", 
+                "WARN", 
+                "Only simulated or placeholder approval methods are available in the approver registry."
+            ))
+        else:
+            results.append(CheckResult(
+                "hardware_attestation_configured",
+                "Hardware approval method reserved",
+                "WARN",
+                "hardware_security_key is configured, but hardware attestation verification is not implemented yet."
+            ))
+
     # 7. Fixture hashes can be recomputed
     action_fixture = "examples/action_requests/delete_customer_exports_original.json"
     if os.path.exists(action_fixture):

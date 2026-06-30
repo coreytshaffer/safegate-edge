@@ -80,7 +80,8 @@ def cmd_approve_create(args: argparse.Namespace) -> None:
             review_packet=review_packet,
             approver_id=args.approver,
             approvers_registry=approvers_registry,
-            approval_status=args.status
+            approval_status=args.status,
+            approval_method=getattr(args, "approval_method", "simulated")
         )
         
         out_dir = os.path.dirname(args.output)
@@ -195,6 +196,7 @@ def main(argv: Optional[list[str]] = None) -> None:
     approve_create_parser.add_argument("--approvers", default="examples/config/approvers.json", help="Path to the approvers registry JSON file")
     approve_create_parser.add_argument("--approver", required=True, help="Approver ID generating the approval")
     approve_create_parser.add_argument("--status", default="approved", choices=["approved", "denied"], help="Approval status")
+    approve_create_parser.add_argument("--approval-method", default="simulated", choices=["simulated", "placeholder_security_key", "hardware_security_key"], help="Method used for approval")
     approve_create_parser.add_argument("--output", required=True, help="Path to write the generated approval packet JSON")
     approve_create_parser.set_defaults(func=cmd_approve_create)
 

@@ -64,3 +64,7 @@ def test_create_approval_packet_not_pending(review_packet, approvers):
     review_packet["review_status"] = "approved"
     with pytest.raises(ValueError, match="Review packet is not pending_review"):
         create_approval_packet(review_packet, "corey", approvers, "approved")
+
+def test_create_approval_packet_custom_method(review_packet, approvers):
+    packet = create_approval_packet(review_packet, "corey", approvers, "approved", approval_method="placeholder_security_key")
+    assert packet["approval_method"] == "placeholder_security_key"

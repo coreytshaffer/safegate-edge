@@ -30,6 +30,12 @@ APPROVAL_REQUIRED_FIELDS = frozenset({
     "approval_required"
 })
 
+KNOWN_APPROVAL_METHODS = {
+    "simulated",
+    "placeholder_security_key",
+    "hardware_security_key",
+}
+
 def validate_approval(approval: dict[str, Any]) -> List[str]:
     """Validate an approval packet against the schema.
     Returns a list of errors, or an empty list if valid.
@@ -48,6 +54,10 @@ def validate_approval(approval: dict[str, Any]) -> List[str]:
     status = approval.get("approval_status")
     if status not in ["approved", "denied"]:
         errors.append(f"Invalid approval_status: {status}")
+        
+    method = approval.get("approval_method")
+    if method not in KNOWN_APPROVAL_METHODS:
+        errors.append(f"approval_method_unknown: '{method}'")
         
     if "action_hash" in approval and not isinstance(approval["action_hash"], str):
         errors.append("Field 'action_hash' must be a string")
@@ -88,6 +98,9 @@ def validate_verification_result(result: dict[str, Any]) -> List[str]:
         "policy_id",
         "policy_rule_id",
         "approval_required",
+        "approval_method",
+        "attestation_required",
+        "attestation_verified",
         "details"
     ]
     missing = [f for f in required_fields if f not in result]

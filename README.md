@@ -4,6 +4,9 @@ SafeGate Edge is a local approval gateway for AI agents and automation workflows
 
 > **MFA verifies identity. SafeGate verifies the action.**
 
+SafeGate currently supports simulated approval packets for deterministic demos and tests. SGE-007 introduces the boundary where future hardware-backed approvals will plug in. Policies can mark an action as requiring hardware attestation, but real hardware attestation verification is not yet implemented.
+SafeGate is hardware-ready, not hardware-verified yet.
+
 ## The Hash Contract
 
 The heart of SafeGate Edge is the **canonical action hash**. Before an action can be approved, it must be hashed. This ensures that the approval is cryptographically bound to the *exact* action requested. If the action is mutated in any way after approval, the hash changes, and the gateway will block the action.

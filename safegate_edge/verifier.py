@@ -36,6 +36,9 @@ def verify_approval(action: dict[str, Any], policy: Optional[dict[str, Any]], ap
         "policy_id": None,
         "policy_rule_id": None,
         "approval_required": None,
+        "approval_method": None,
+        "attestation_required": None,
+        "attestation_verified": False,
         "details": {}
     }
     
@@ -78,8 +81,12 @@ def verify_approval(action: dict[str, Any], policy: Optional[dict[str, Any]], ap
 
     # 5. Resolve applicable policy rule
     rule = _resolve_policy_rule(policy, risk_level)
+    attestation_required = False
     if rule:
         result["policy_rule_id"] = rule.get("rule_id")
+        attestation_required = rule.get("attestation_required", False)
+        
+    result["attestation_required"] = attestation_required
 
     # 6. Determine whether approval is required
     approval_req = policy_module.requires_approval(policy, risk_level, action.get("action_type"))
@@ -101,7 +108,10 @@ def verify_approval(action: dict[str, Any], policy: Optional[dict[str, Any]], ap
     # 9. Run existing approval checks
     approval_errors = validate_approval(approval)
     if approval_errors:
-        result["reason"] = "malformed_approval"
+        if any("approval_method_unknown" in e for e in approval_errors):
+            result["reason"] = "approval_method_unknown"
+        else:
+            result["reason"] = "malformed_approval"
         result["details"] = {"errors": approval_errors}
         return result
 
@@ -121,6 +131,20 @@ def verify_approval(action: dict[str, Any], policy: Optional[dict[str, Any]], ap
         result["reason"] = "approval_not_granted"
         return result
 
+    approval_method = approval.get("approval_method")
+    result["approval_method"] = approval_method
+    
+    if attestation_required:
+        if approval_method in ["simulated", "placeholder_security_key"]:
+            result["reason"] = "hardware_attestation_required"
+            return result
+        elif approval_method == "hardware_security_key":
+            result["reason"] = "hardware_attestation_not_implemented"
+            return result
+        else:
+            result["reason"] = "hardware_attestation_required"
+            return result
+            
     if not approval.get("approver_id"):
         result["reason"] = "unknown_approver"
         result["details"] = {"message": "Approver ID is missing or empty"}

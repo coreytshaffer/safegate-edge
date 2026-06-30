@@ -8,7 +8,7 @@
   "approved_at": "2026-07-01T12:05:00Z",
   "expires_at": "2026-07-01T14:00:00Z",
   "approval_status": "approved",
-  "approval_method": "yubikey-piv",
+  "approval_method": "simulated",
   "signature_or_attestation_placeholder": "PLACEHOLDER",
   "policy_id": "default",
   "policy_rule_id": "high-risk-approval",

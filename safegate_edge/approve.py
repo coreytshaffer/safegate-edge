@@ -14,6 +14,7 @@ def create_approval_packet(
     approver_id: str,
     approvers_registry: dict[str, Any],
     approval_status: str = "approved",
+    approval_method: str = "simulated",
     now_iso: Optional[str] = None
 ) -> dict[str, Any]:
     
@@ -67,7 +68,7 @@ def create_approval_packet(
         "approved_at": current_time_iso,
         "expires_at": expires_at,
         "approval_status": approval_status,
-        "approval_method": "simulated",
+        "approval_method": approval_method,
         "signature_or_attestation_placeholder": "PLACEHOLDER",
         "policy_id": review_packet.get("policy_id"),
         "policy_rule_id": review_packet.get("policy_rule_id"),

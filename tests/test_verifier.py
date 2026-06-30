@@ -69,6 +69,39 @@ def test_verify_low_risk_with_approval(low_risk_action, policy, valid_approval):
     assert result["reason"] == "approval_not_required"
     assert result["details"]["approval_present_but_not_required"] is True
 
+def test_verify_approval_attestation_required(original_action, policy, valid_approval):
+    # Enable attestation_required in the high-risk rule
+    policy["rules"][0]["attestation_required"] = True
+    
+    # 1. simulated -> block
+    valid_approval["approval_method"] = "simulated"
+    res = verify_approval(original_action, policy, valid_approval)
+    assert res["decision"] == "blocked"
+    assert res["reason"] == "hardware_attestation_required"
+    assert res["attestation_required"] is True
+    assert res["attestation_verified"] is False
+    
+    # 2. placeholder_security_key -> block
+    valid_approval["approval_method"] = "placeholder_security_key"
+    res = verify_approval(original_action, policy, valid_approval)
+    assert res["decision"] == "blocked"
+    assert res["reason"] == "hardware_attestation_required"
+    
+    # 3. hardware_security_key -> block
+    valid_approval["approval_method"] = "hardware_security_key"
+    res = verify_approval(original_action, policy, valid_approval)
+    assert res["decision"] == "blocked"
+    assert res["reason"] == "hardware_attestation_not_implemented"
+
+def test_verify_approval_attestation_not_required(original_action, policy, valid_approval):
+    policy["rules"][0]["attestation_required"] = False
+    
+    valid_approval["approval_method"] = "simulated"
+    res = verify_approval(original_action, policy, valid_approval)
+    assert res["decision"] == "allowed"
+    assert res["reason"] == "valid_approval"
+    assert res["attestation_required"] is False
+
 def test_verify_expired_approval(original_action, policy, valid_approval):
     # Set 'now' to after the approval expires (which is 14:00:00Z)
     now = datetime(2026, 7, 1, 15, 0, tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
@@ -103,5 +136,10 @@ def test_verify_unknown_approver(original_action, policy):
     result = verify_approval(original_action, policy, unknown_approver_approval)
     # the reason in verifier for this was actually not natively unknown_approver unless approval_status wasn't "approved".
     # Since I overwrote verify_approval, it checks approval_status. The fixture has status="rejected" or "approved"?
-    # For now, just assert it's blocked.
     assert result["decision"] == "blocked"
+
+def test_verify_approval_method_unknown(original_action, policy, valid_approval):
+    valid_approval["approval_method"] = "unknown_method"
+    result = verify_approval(original_action, policy, valid_approval)
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "approval_method_unknown"
