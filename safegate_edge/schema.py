@@ -14,7 +14,9 @@ ACTION_REQUIRED_FIELDS = frozenset({
 })
 
 APPROVAL_REQUIRED_FIELDS = frozenset({
+    "schema_version",
     "approval_id",
+    "review_id",
     "action_id",
     "action_hash",
     "approver_id",
@@ -23,8 +25,34 @@ APPROVAL_REQUIRED_FIELDS = frozenset({
     "approval_status",
     "approval_method",
     "signature_or_attestation_placeholder",
-    "metadata",
+    "policy_id",
+    "policy_rule_id",
+    "approval_required"
 })
+
+def validate_approval(approval: dict[str, Any]) -> List[str]:
+    """Validate an approval packet against the schema.
+    Returns a list of errors, or an empty list if valid.
+    """
+    errors = []
+    if not isinstance(approval, dict):
+        return ["Approval must be a JSON object"]
+    
+    missing = APPROVAL_REQUIRED_FIELDS - set(approval.keys())
+    if missing:
+        errors.append(f"Missing required fields in approval: {sorted(missing)}")
+        
+    if approval.get("schema_version") != "approval_packet.v1":
+        errors.append("Invalid or missing schema_version, expected 'approval_packet.v1'")
+        
+    status = approval.get("approval_status")
+    if status not in ["approved", "denied"]:
+        errors.append(f"Invalid approval_status: {status}")
+        
+    if "action_hash" in approval and not isinstance(approval["action_hash"], str):
+        errors.append("Field 'action_hash' must be a string")
+        
+    return errors
 
 def validate_action(action: dict[str, Any]) -> List[str]:
     """Validate an action request against the schema.
@@ -40,22 +68,7 @@ def validate_action(action: dict[str, Any]) -> List[str]:
         
     return errors
 
-def validate_approval(approval: dict[str, Any]) -> List[str]:
-    """Validate an approval packet against the schema.
-    Returns a list of errors, or an empty list if valid.
-    """
-    errors = []
-    if not isinstance(approval, dict):
-        return ["Approval must be a JSON object"]
-    
-    missing = APPROVAL_REQUIRED_FIELDS - set(approval.keys())
-    if missing:
-        errors.append(f"Missing required fields in ApprovalPacket: {sorted(missing)}")
-        
-    if "action_hash" in approval and not isinstance(approval["action_hash"], str):
-        errors.append("Field 'action_hash' must be a string")
-        
-    return errors
+
 
 def validate_verification_result(result: dict[str, Any]) -> List[str]:
     errors = []

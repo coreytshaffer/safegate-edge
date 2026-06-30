@@ -73,7 +73,18 @@ Generate a review packet:
 python -m safegate_edge.cli review create --action action_request.json --policy default_policy.json --output review_packet.json
 ```
 
-### 4. Self-Diagnostic Commands
+### 4. Approval Packet Generation
+
+SafeGate can now simulate the human approval step. A pending review packet can be converted into an approval packet by an active approver. The approval packet binds the approver, review_id, action_id, policy rule, and canonical action_hash into the artifact later used by the verifier.
+
+The approval does not approve a general intent. It approves one reviewed action hash.
+
+Generate an approval packet:
+```bash
+python -m safegate_edge.cli approve create --review review_packet.json --approver corey --status approved --output generated_approval.json
+```
+
+### 5. Self-Diagnostic Commands
 
 SafeGate Edge includes self-diagnostic tools to ensure the environment is healthy and configurations are valid before you trust it in production.
 

@@ -105,6 +105,10 @@ def verify_approval(action: dict[str, Any], policy: Optional[dict[str, Any]], ap
         result["details"] = {"errors": approval_errors}
         return result
 
+    if approval.get("approval_status") == "denied":
+        result["reason"] = "approval_not_granted"
+        return result
+
     if approval.get("action_hash") != action_hash:
         result["reason"] = "action_hash_mismatch"
         result["details"] = {

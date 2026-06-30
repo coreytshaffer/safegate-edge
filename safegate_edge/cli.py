@@ -13,6 +13,7 @@ from .doctor import run_doctor_checks, print_doctor_results
 from .preflight import run_preflight_checks, print_preflight_results
 
 from .review import create_review_packet
+from .approve import create_approval_packet
 
 def cmd_doctor(args: argparse.Namespace) -> None:
     try:
@@ -68,6 +69,32 @@ def cmd_review_create(args: argparse.Namespace) -> None:
         sys.exit(0)
     except Exception as e:
         print(f"Error creating review packet: {e}", file=sys.stderr)
+        sys.exit(1)
+
+def cmd_approve_create(args: argparse.Namespace) -> None:
+    try:
+        review_packet = load_json(args.review)
+        approvers_registry = load_json(args.approvers)
+        
+        packet = create_approval_packet(
+            review_packet=review_packet,
+            approver_id=args.approver,
+            approvers_registry=approvers_registry,
+            approval_status=args.status
+        )
+        
+        out_dir = os.path.dirname(args.output)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+            
+        with open(args.output, "w", encoding="utf-8") as f:
+            json.dump(packet, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+            
+        print(f"Approval packet created at {args.output}")
+        sys.exit(0)
+    except Exception as e:
+        print(f"Error creating approval packet: {e}", file=sys.stderr)
         sys.exit(1)
 
 def cmd_verify(args: argparse.Namespace) -> None:
@@ -158,6 +185,18 @@ def main(argv: Optional[list[str]] = None) -> None:
     review_create_parser.add_argument("--policy", default="examples/config/default_policy.json", help="Path to the policy JSON file")
     review_create_parser.add_argument("--output", required=True, help="Path to write the review packet JSON")
     review_create_parser.set_defaults(func=cmd_review_create)
+
+    # `approve` command
+    approve_parser = subparsers.add_parser("approve", help="Approval packet commands")
+    approve_subparsers = approve_parser.add_subparsers(dest="approve_command", required=True)
+    
+    approve_create_parser = approve_subparsers.add_parser("create", help="Create an approval packet from a review packet")
+    approve_create_parser.add_argument("--review", required=True, help="Path to the review packet JSON file")
+    approve_create_parser.add_argument("--approvers", default="examples/config/approvers.json", help="Path to the approvers registry JSON file")
+    approve_create_parser.add_argument("--approver", required=True, help="Approver ID generating the approval")
+    approve_create_parser.add_argument("--status", default="approved", choices=["approved", "denied"], help="Approval status")
+    approve_create_parser.add_argument("--output", required=True, help="Path to write the generated approval packet JSON")
+    approve_create_parser.set_defaults(func=cmd_approve_create)
 
     # `verify` command
     verify_parser = subparsers.add_parser("verify", help="Verify an action against an approval packet")
