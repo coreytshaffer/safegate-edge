@@ -1,40 +1,31 @@
 {
-  "bundle_id": "evb-e8dcaa57",
-  "generated_at": "2026-06-30T04:54:53.140116+00:00",
-  "schema_version": "1.0",
-  "safegate_version": "0.1.0",
-  "action_id": "act-123456",
-  "approval_id": "apr-abcdef",
-  "verification_id": "vrf-511b0399",
-  "decision_id": "dec-26fb613b",
-  "decision": "blocked",
-  "reason": "action_hash_mismatch",
+  "schema_version": "evidence_manifest.v1",
+  "exported_at": "2026-06-30T05:15:45.790442Z",
   "files": [
     {
       "path": "action_request.json",
-      "sha256": "sha256:2a6a7f8954facc517f22f15a72328acaca738966a24a15f678b9a012bb4fba0d",
-      "content_type": "application/json"
+      "sha256": "sha256:7e9d51241876c0fff7c967ec7954e893997e69add9d724c767810256c5b219f0"
     },
     {
       "path": "approval_packet.json",
-      "sha256": "sha256:4c5d04561870b0c4db0b8a7f44dd11f58e4fc7528af2b2af489c01c3aec2946f",
-      "content_type": "application/json"
+      "sha256": "sha256:f87bbaf1c1f3003c44a314c4e2ee8399ce613b7efbc2ee4e16322288b4a7e8d0"
     },
     {
       "path": "verification_result.json",
-      "sha256": "sha256:f8fcfcb670b057af23b800de99b0be70d046102bafff19c54db5c12e53819a5f",
-      "content_type": "application/json"
+      "sha256": "sha256:b875cfe7ebc2d84529643be6c5cf096711162af79d869bf08b68dd4ad86af1f1"
     },
     {
       "path": "execution_decision.json",
-      "sha256": "sha256:0d056ba8b70f8826ffd0dabf464fccdb0d1cb15952c3f1cb8a6e927e9a146b14",
-      "content_type": "application/json"
+      "sha256": "sha256:268ff7f754c7f6872707125cbe317672ddab40a38e58a112c5cb70faaaa91883"
+    },
+    {
+      "path": "policy_snapshot.json",
+      "sha256": "sha256:e669327a1da47af8b99235e050c7fe9697ff15f95dc31dacf04491976d47e988"
     },
     {
       "path": "observe_events.jsonl",
-      "sha256": "sha256:206a244d51b5230900c16ce3c4482d9c4e1f5494190414caeabaa8bc03756ab5",
-      "content_type": "application/jsonl"
+      "sha256": "sha256:9f2584cc859252e8b53018806356ad301fc19ac41098e5d847efb01274a0bc57"
     }
   ],
-  "bundle_hash": "sha256:08919226b26ae04b5ef5f35369aeaf0af7d7418c67c74b60190637e32cc642bb"
+  "bundle_hash": "sha256:3f4384563fffbd2ca8068d4f58206b6d35a078be3602c03aa13e56bc67048983"
 }

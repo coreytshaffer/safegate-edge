@@ -38,5 +38,5 @@ def test_cli_verify_blocked_mismatch(mock_datetime, capsys):
         ])
     assert e.value.code == 1
     captured = capsys.readouterr()
-    assert '"decision": "blocked"' in captured.out
-    assert '"reason": "action_hash_mismatch"' in captured.out
+    assert "decision: blocked" in captured.out
+    assert "reason: action_hash_mismatch" in captured.out

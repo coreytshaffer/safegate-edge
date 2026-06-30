@@ -1,168 +1,139 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
-
-from .canonical import canonical_action_hash
 from .schema import validate_action, validate_approval
+from .canonical import canonical_action_hash
+from . import policy as policy_module
 
-VERIFIER_VERSION = "0.1.0"
+def _utc_now_iso(now_iso: Optional[str] = None) -> str:
+    if now_iso:
+        return now_iso
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
-def create_verification_result(
-    action_id: str,
-    action_hash: str,
-    approval_id: Optional[str],
-    decision: str,
-    reason: str,
-    details: dict[str, Any],
-    now: datetime
-) -> dict[str, Any]:
-    return {
-        "verification_id": f"vrf-{uuid.uuid4().hex[:8]}",
-        "action_id": action_id,
-        "action_hash": action_hash,
-        "approval_id": approval_id or "",
-        "decision": decision,
-        "reason": reason,
-        "verified_at": now.isoformat(),
-        "verifier_version": VERIFIER_VERSION,
-        "details": details,
-    }
+def _resolve_policy_rule(pol: dict, risk_level: str) -> Optional[dict]:
+    rules = pol.get("rules", [])
+    for rule in rules:
+        if isinstance(rule, dict) and rule.get("risk_level") == risk_level:
+            return rule
+    return None
 
-def verify_approval(
-    action: dict[str, Any],
-    approval: Optional[dict[str, Any]],
-    now: Optional[datetime] = None,
-) -> dict[str, Any]:
-    """Verify that an approval packet authorizes the given action.
+def verify_approval(action: dict[str, Any], policy: Optional[dict[str, Any]], approval: Optional[dict[str, Any]] = None, now_iso: Optional[str] = None) -> dict[str, Any]:
+    """Verify an action request against an approval packet and a policy."""
+    verification_id = f"vrf-{uuid.uuid4().hex}"
+    verified_at = _utc_now_iso(now_iso)
     
-    Fail-closed: any error, missing data, or ambiguity results in blocked.
-    """
-    if now is None:
-        now = datetime.now(timezone.utc)
-    elif now.tzinfo is None:
-        now = now.replace(tzinfo=timezone.utc)
-
-    # 1. Validate action contract
+    # Base structure
+    result = {
+        "schema_version": "verification_result.v1",
+        "verification_id": verification_id,
+        "action_id": action.get("action_id"),
+        "action_hash": None,
+        "approval_id": approval.get("approval_id") if approval else None,
+        "decision": "blocked",
+        "reason": "unknown_error",
+        "verified_at": verified_at,
+        "verifier_version": "0.1.0",
+        "policy_id": None,
+        "policy_rule_id": None,
+        "approval_required": None,
+        "details": {}
+    }
+    
+    # 1. Validate action schema
     action_errors = validate_action(action)
     if action_errors:
-        return create_verification_result(
-            action_id=action.get("action_id", "unknown"),
-            action_hash="unknown",
-            approval_id=approval.get("approval_id") if approval else None,
-            decision="blocked",
-            reason="malformed_action",
-            details={"errors": action_errors},
-            now=now
-        )
+        result["reason"] = "malformed_action"
+        result["details"] = {"errors": action_errors}
+        return result
         
-    action_id = action["action_id"]
-    expected_hash = canonical_action_hash(action)
+    try:
+        action_hash = canonical_action_hash(action)
+        result["action_hash"] = action_hash
+    except Exception as e:
+        result["reason"] = "hashing_failed"
+        result["details"] = {"error": str(e)}
+        return result
 
-    # 2. Check missing approval
-    if approval is None:
-        return create_verification_result(
-            action_id=action_id,
-            action_hash=expected_hash,
-            approval_id=None,
-            decision="blocked",
-            reason="missing_approval",
-            details={"message": "No approval packet provided"},
-            now=now
-        )
+    # 2. Validate policy presence
+    if not policy:
+        result["reason"] = "policy_not_found"
+        return result
 
-    # 3. Validate approval contract
+    # 3. Validate policy schema
+    policy_errors = policy_module.validate_policy(policy)
+    if policy_errors:
+        result["reason"] = "policy_invalid"
+        result["details"] = {"errors": policy_errors}
+        return result
+        
+    result["policy_id"] = policy.get("policy_id")
+
+    # 4. Validate risk_level
+    risk_level = action.get("risk_level")
+    known_risks = ["low", "medium", "high", "critical"]
+    if risk_level not in known_risks:
+        result["reason"] = "risk_level_unknown"
+        result["details"] = {"risk_level": risk_level}
+        return result
+
+    # 5. Resolve applicable policy rule
+    rule = _resolve_policy_rule(policy, risk_level)
+    if rule:
+        result["policy_rule_id"] = rule.get("rule_id")
+
+    # 6. Determine whether approval is required
+    approval_req = policy_module.requires_approval(policy, risk_level, action.get("action_type"))
+    result["approval_required"] = approval_req
+
+    # 7. If approval is not required, allow
+    if not approval_req:
+        result["decision"] = "allowed"
+        result["reason"] = "approval_not_required"
+        if approval is not None:
+            result["details"] = {"approval_present_but_not_required": True}
+        return result
+
+    # 8. If approval is required and missing, block
+    if not approval:
+        result["reason"] = "approval_required_missing"
+        return result
+
+    # 9. Run existing approval checks
     approval_errors = validate_approval(approval)
     if approval_errors:
-        return create_verification_result(
-            action_id=action_id,
-            action_hash=expected_hash,
-            approval_id=approval.get("approval_id", "unknown"),
-            decision="blocked",
-            reason="malformed_approval",
-            details={"errors": approval_errors},
-            now=now
-        )
-        
-    approval_id = approval["approval_id"]
+        result["reason"] = "malformed_approval"
+        result["details"] = {"errors": approval_errors}
+        return result
 
-    # 4. Check approval status
+    if approval.get("action_hash") != action_hash:
+        result["reason"] = "action_hash_mismatch"
+        result["details"] = {
+            "expected_hash": approval.get("action_hash"),
+            "actual_hash": action_hash
+        }
+        return result
+
     if approval.get("approval_status") != "approved":
-        return create_verification_result(
-            action_id=action_id,
-            action_hash=expected_hash,
-            approval_id=approval_id,
-            decision="blocked",
-            reason="approval_not_granted",
-            details={"approval_status": approval.get("approval_status")},
-            now=now
-        )
-        
-    # 5. Check unknown approver (for now, simply check it exists and isn't empty)
-    # We will expand this when we have an approver registry
+        result["reason"] = "approval_not_granted"
+        return result
+
     if not approval.get("approver_id"):
-        return create_verification_result(
-            action_id=action_id,
-            action_hash=expected_hash,
-            approval_id=approval_id,
-            decision="blocked",
-            reason="unknown_approver",
-            details={"message": "Approver ID is missing or empty"},
-            now=now
-        )
+        result["reason"] = "unknown_approver"
+        result["details"] = {"message": "Approver ID is missing or empty"}
+        return result
 
-    # 6. Check hash binding
-    if approval["action_hash"] != expected_hash:
-        return create_verification_result(
-            action_id=action_id,
-            action_hash=expected_hash,
-            approval_id=approval_id,
-            decision="blocked",
-            reason="action_hash_mismatch",
-            details={
-                "expected_hash": expected_hash,
-                "provided_hash": approval["action_hash"]
-            },
-            now=now
-        )
-
-    # 7. Check expiration
-    try:
-        expires_at = datetime.fromisoformat(approval["expires_at"])
-    except (ValueError, TypeError):
-        return create_verification_result(
-            action_id=action_id,
-            action_hash=expected_hash,
-            approval_id=approval_id,
-            decision="blocked",
-            reason="malformed_approval",
-            details={"message": "Invalid expires_at timestamp"},
-            now=now
-        )
-
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-
-    if now >= expires_at:
-        return create_verification_result(
-            action_id=action_id,
-            action_hash=expected_hash,
-            approval_id=approval_id,
-            decision="blocked",
-            reason="approval_expired",
-            details={
-                "expires_at": expires_at.isoformat(),
-                "verified_at": now.isoformat()
-            },
-            now=now
-        )
-
-    # All checks passed
-    return create_verification_result(
-        action_id=action_id,
-        action_hash=expected_hash,
-        approval_id=approval_id,
-        decision="allowed",
-        reason="valid_approval",
-        details={"message": "Approval is valid, bound to action, and not expired"},
-        now=now
-    )
+    # Check expiration
+    expires_at_str = approval.get("expires_at")
+    if expires_at_str:
+        # Simple string comparison works for ISO 8601 if we assume UTC
+        if verified_at > expires_at_str:
+            result["reason"] = "approval_expired"
+            result["details"] = {
+                "expires_at": expires_at_str,
+                "verified_at": verified_at
+            }
+            return result
+            
+    result["decision"] = "allowed"
+    result["reason"] = "valid_approval"
+    return result

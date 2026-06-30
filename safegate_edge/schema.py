@@ -56,3 +56,32 @@ def validate_approval(approval: dict[str, Any]) -> List[str]:
         errors.append("Field 'action_hash' must be a string")
         
     return errors
+
+def validate_verification_result(result: dict[str, Any]) -> List[str]:
+    errors = []
+    if not isinstance(result, dict):
+        return ["VerificationResult must be a JSON object"]
+    
+    required_fields = [
+        "schema_version",
+        "verification_id",
+        "action_id",
+        "action_hash",
+        "approval_id",
+        "decision",
+        "reason",
+        "verified_at",
+        "verifier_version",
+        "policy_id",
+        "policy_rule_id",
+        "approval_required",
+        "details"
+    ]
+    missing = [f for f in required_fields if f not in result]
+    if missing:
+        errors.append(f"Missing required fields in VerificationResult: {missing}")
+        
+    if result.get("schema_version") != "verification_result.v1":
+        errors.append("Invalid or missing schema_version, expected 'verification_result.v1'")
+        
+    return errors

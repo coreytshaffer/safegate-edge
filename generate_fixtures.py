@@ -107,16 +107,35 @@ def main():
         "policy_id": "default",
         "rules": [
             {
+                "rule_id": "high-risk-approval",
                 "risk_level": "high",
                 "approval_required": True
             },
             {
+                "rule_id": "critical-risk-approval",
                 "risk_level": "critical",
                 "approval_required": True
+            },
+            {
+                "rule_id": "low-risk-no-approval",
+                "risk_level": "low",
+                "approval_required": False
+            },
+            {
+                "rule_id": "medium-risk-no-approval",
+                "risk_level": "medium",
+                "approval_required": False
             }
         ]
     }
     save_json("examples/config/default_policy.json", policy)
+    
+    # SGE-004 Low Risk Action
+    low_risk_action = original_action.copy()
+    low_risk_action["action_id"] = "act-low-001"
+    low_risk_action["action_type"] = "filesystem.read"
+    low_risk_action["risk_level"] = "low"
+    save_json("examples/action_requests/read_customer_exports_low_risk.json", low_risk_action)
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,26 @@
+{
+  "schema_version": "policy.v1",
+  "policy_id": "default",
+  "rules": [
+    {
+      "rule_id": "high-risk-approval",
+      "risk_level": "high",
+      "approval_required": true
+    },
+    {
+      "rule_id": "critical-risk-approval",
+      "risk_level": "critical",
+      "approval_required": true
+    },
+    {
+      "rule_id": "low-risk-no-approval",
+      "risk_level": "low",
+      "approval_required": false
+    },
+    {
+      "rule_id": "medium-risk-no-approval",
+      "risk_level": "medium",
+      "approval_required": false
+    }
+  ]
+}

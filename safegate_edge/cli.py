@@ -1,6 +1,7 @@
 import argparse
 import json
 import sys
+import os
 from typing import Optional
 
 from .canonical import canonical_action_hash
@@ -47,9 +48,15 @@ def cmd_verify(args: argparse.Namespace) -> None:
         action = load_json(args.action)
         approval = load_json(args.approval) if args.approval else None
         
-        result = verify_approval(action, approval)
+        policy_path = args.policy
+        policy = None
+        if os.path.exists(policy_path):
+            policy = load_json(policy_path)
+            
+        result = verify_approval(action, policy, approval)
         
-        print(json.dumps(result, indent=2))
+        print(f"decision: {result.get('decision')}")
+        print(f"reason: {result.get('reason')}")
         
         if result["decision"] == "blocked":
             sys.exit(1)
@@ -65,26 +72,30 @@ def cmd_evidence_export_smoke(args: argparse.Namespace) -> None:
         original_action = load_json("examples/action_requests/delete_customer_exports_original.json")
         mutated_action = load_json("examples/action_requests/delete_customer_exports_mutated.json")
         valid_approval = load_json("examples/approval_packets/valid_approval.json")
+        policy = load_json("examples/config/default_policy.json")
         
         chain = EventLogChain()
         
         # 1. Original action requested
         chain.append("ACTION_REQUESTED", {"action": original_action}, original_action["action_id"])
         
-        # 2. Approval granted
+        # 2. Policy snapshot
+        chain.append("POLICY_SNAPSHOT_RECORDED", {"policy_id": policy.get("policy_id")}, original_action["action_id"])
+        
+        # 3. Approval granted
         chain.append("APPROVAL_GRANTED", {"approval": valid_approval}, original_action["action_id"], valid_approval["approval_id"])
         
-        # 3. Mutated action attempted/verified
-        vr = verify_approval(mutated_action, valid_approval)
+        # 4. Mutated action attempted/verified
+        vr = verify_approval(mutated_action, policy, valid_approval)
         
-        # 4. Hash mismatch detected
-        chain.append("ACTION_HASH_MISMATCH", vr["details"], mutated_action["action_id"], valid_approval["approval_id"], vr["verification_id"])
+        # 5. Hash mismatch detected
+        chain.append("ACTION_HASH_MISMATCH", vr.get("details", {}), mutated_action["action_id"], valid_approval["approval_id"], vr["verification_id"])
         
-        # 5. Execution decision
+        # 6. Execution decision
         ed = create_execution_decision(vr, execution_mode="simulated")
         chain.append("ACTION_BLOCKED", {"decision_id": ed["decision_id"], "reason": ed["reason"]}, mutated_action["action_id"], valid_approval["approval_id"], vr["verification_id"], ed["decision_id"])
         
-        # 6. Export evidence
+        # 7. Export evidence
         chain.append("EVIDENCE_EXPORTED", {"output_dir": args.output_dir}, mutated_action["action_id"], valid_approval["approval_id"], vr["verification_id"], ed["decision_id"])
         
         manifest = export_evidence_bundle(
@@ -93,7 +104,8 @@ def cmd_evidence_export_smoke(args: argparse.Namespace) -> None:
             verification_result=vr,
             execution_decision=ed,
             observe_events_jsonl=chain.to_jsonl(),
-            output_dir=args.output_dir
+            output_dir=args.output_dir,
+            policy_snapshot=policy
         )
         print(f"Evidence bundle exported to {args.output_dir}")
         print(f"Bundle Hash: {manifest['bundle_hash']}")
@@ -113,6 +125,7 @@ def main(argv: Optional[list[str]] = None) -> None:
     # `verify` command
     verify_parser = subparsers.add_parser("verify", help="Verify an action against an approval packet")
     verify_parser.add_argument("--action", required=True, help="Path to the action request JSON file")
+    verify_parser.add_argument("--policy", default="examples/config/default_policy.json", help="Path to the policy JSON file")
     verify_parser.add_argument("--approval", help="Path to the approval packet JSON file")
     verify_parser.set_defaults(func=cmd_verify)
     

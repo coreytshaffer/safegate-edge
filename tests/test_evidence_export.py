@@ -29,18 +29,22 @@ def test_export_evidence_bundle(tmp_path):
         execution_decision=ed,
         observe_events_jsonl=events,
         output_dir=out_dir,
+        policy_snapshot={"policy_id": "default"},
         now=now
     )
     
-    # Check 6 files exist
+    # Check 7 files exist
     assert os.path.exists(os.path.join(out_dir, "action_request.json"))
     assert os.path.exists(os.path.join(out_dir, "approval_packet.json"))
     assert os.path.exists(os.path.join(out_dir, "verification_result.json"))
     assert os.path.exists(os.path.join(out_dir, "execution_decision.json"))
+    assert os.path.exists(os.path.join(out_dir, "policy_snapshot.json"))
     assert os.path.exists(os.path.join(out_dir, "observe_events.jsonl"))
     assert os.path.exists(os.path.join(out_dir, "evidence_manifest.json"))
     
     # Verify manifest file hashes
+    assert len(manifest["files"]) == 6
+    
     for f_info in manifest["files"]:
         filepath = os.path.join(out_dir, f_info["path"])
         actual_hash = _hash_file(filepath)
