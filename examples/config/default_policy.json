@@ -1,0 +1,14 @@
+{
+  "schema_version": "policy.v1",
+  "policy_id": "default",
+  "rules": [
+    {
+      "risk_level": "high",
+      "approval_required": true
+    },
+    {
+      "risk_level": "critical",
+      "approval_required": true
+    }
+  ]
+}

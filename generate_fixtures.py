@@ -84,8 +84,39 @@ def main():
     save_json("examples/approval_packets/valid_approval.json", valid_approval)
     save_json("examples/approval_packets/expired_approval_packet.json", expired_approval)
     save_json("examples/approval_packets/hash_mismatch_approval_packet.json", mismatch_approval)
-    save_json("examples/approval_packets/unknown_approver_approval_packet.json", unknown_approver)
-    save_json("examples/approval_packets/malformed_approval_packet.json", malformed_approval)
+    # SGE-003 Fixtures
+    approvers = {
+        "schema_version": "approvers.v1",
+        "approvers": [
+            {
+                "approver_id": "corey",
+                "display_name": "Corey",
+                "status": "active",
+                "approval_methods": ["placeholder_security_key"],
+                "public_key_fingerprint": "placeholder-fingerprint-corey",
+                "created_at": "2026-06-29T00:00:00Z",
+                "rotated_at": None,
+                "metadata": {}
+            }
+        ]
+    }
+    save_json("examples/config/approvers.json", approvers)
+
+    policy = {
+        "schema_version": "policy.v1",
+        "policy_id": "default",
+        "rules": [
+            {
+                "risk_level": "high",
+                "approval_required": True
+            },
+            {
+                "risk_level": "critical",
+                "approval_required": True
+            }
+        ]
+    }
+    save_json("examples/config/default_policy.json", policy)
 
 if __name__ == "__main__":
     main()

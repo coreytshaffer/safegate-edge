@@ -8,6 +8,26 @@ from .verifier import verify_approval
 from .observe import EventLogChain
 from .decision import create_execution_decision
 from .evidence import export_evidence_bundle
+from .doctor import run_doctor_checks, print_doctor_results
+from .preflight import run_preflight_checks, print_preflight_results
+
+def cmd_doctor(args: argparse.Namespace) -> None:
+    try:
+        results = run_doctor_checks()
+        exit_code = print_doctor_results(results)
+        sys.exit(exit_code)
+    except Exception as e:
+        print(f"Error running doctor checks: {e}", file=sys.stderr)
+        sys.exit(1)
+
+def cmd_preflight(args: argparse.Namespace) -> None:
+    try:
+        results = run_preflight_checks(args.action)
+        exit_code = print_preflight_results(results)
+        sys.exit(exit_code)
+    except Exception as e:
+        print(f"Error running preflight checks: {e}", file=sys.stderr)
+        sys.exit(1)
 
 def load_json(filepath: str) -> dict:
     with open(filepath, "r", encoding="utf-8") as f:
@@ -103,6 +123,15 @@ def main(argv: Optional[list[str]] = None) -> None:
     export_smoke_parser = evidence_subparsers.add_parser("export-smoke", help="Export a smoke demo evidence bundle")
     export_smoke_parser.add_argument("--output-dir", required=True, help="Path to export the evidence bundle")
     export_smoke_parser.set_defaults(func=cmd_evidence_export_smoke)
+
+    # `doctor` command
+    doctor_parser = subparsers.add_parser("doctor", help="Run diagnostic checks on SafeGate environment")
+    doctor_parser.set_defaults(func=cmd_doctor)
+
+    # `preflight` command
+    preflight_parser = subparsers.add_parser("preflight", help="Run preflight checks on an action request")
+    preflight_parser.add_argument("--action", required=True, help="Path to the action request JSON file")
+    preflight_parser.set_defaults(func=cmd_preflight)
 
     args = parser.parse_args(argv)
     args.func(args)

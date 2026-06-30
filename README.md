@@ -61,3 +61,46 @@ safegate verify \
 ## SafeGate Observe
 
 SafeGate Observe provides an append-only verifiable event trace for every verification decision. It exports an EvidenceBundle containing the original request, the approval, the verification result, the execution decision, and a JSONL event trace where each event is cryptographically hashed and linked to the previous event (forming a hash chain). An evidence manifest includes file-level SHA-256 hashes to guarantee the bundle's integrity.
+
+## Doctor and Preflight
+
+SafeGate Edge includes self-diagnostic tools to ensure the environment is healthy and configurations are valid before you trust it in production.
+
+### Doctor
+The `doctor` command inspects the SafeGate environment, checking for core module imports, policy availability, approver registry validity, writable output directories, and recomputing fixture hashes.
+
+```bash
+safegate doctor
+```
+An example of a healthy output:
+```text
+[PASS]  SafeGate core modules importable
+[PASS]  Default policy available
+[PASS]  Examples directory exists
+...
+Doctor check complete.
+```
+
+### Preflight
+The `preflight` command tests a specific action request against your configurations to verify it parses correctly, the schema is valid, the risk level is recognized, and whether an active approver is available if the policy requires approval.
+
+```bash
+safegate preflight --action examples/action_requests/delete_customer_exports_original.json
+```
+
+### Approver Registry
+SafeGate uses a simple JSON-based approver registry (e.g. `examples/config/approvers.json`) to keep track of active approvers. 
+```json
+{
+  "schema_version": "approvers.v1",
+  "approvers": [
+    {
+      "approver_id": "corey",
+      "display_name": "Corey",
+      "status": "active",
+      "approval_methods": ["placeholder_security_key"]
+    }
+  ]
+}
+```
+The `doctor` and `preflight` tools will automatically validate this registry.

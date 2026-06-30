@@ -1,0 +1,17 @@
+{
+  "schema_version": "approvers.v1",
+  "approvers": [
+    {
+      "approver_id": "corey",
+      "display_name": "Corey",
+      "status": "active",
+      "approval_methods": [
+        "placeholder_security_key"
+      ],
+      "public_key_fingerprint": "placeholder-fingerprint-corey",
+      "created_at": "2026-06-29T00:00:00Z",
+      "rotated_at": null,
+      "metadata": {}
+    }
+  ]
+}
