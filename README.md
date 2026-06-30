@@ -62,7 +62,18 @@ safegate verify \
 
 SafeGate Observe provides an append-only verifiable event trace for every verification decision. It exports an EvidenceBundle containing the original request, the approval, the verification result, the execution decision, and a JSONL event trace where each event is cryptographically hashed and linked to the previous event (forming a hash chain). An evidence manifest includes file-level SHA-256 hashes to guarantee the bundle's integrity.
 
-## Doctor and Preflight
+### 3. Human Review Packets
+
+SafeGate review packets show the exact action a human is being asked to approve. Each packet includes the plain-language summary, raw action details, policy rule, approval requirement, expiration, and canonical action hash.
+
+The human does not approve a vague request. The human reviews and approves a specific action hash.
+
+Generate a review packet:
+```bash
+python -m safegate_edge.cli review create --action action_request.json --policy default_policy.json --output review_packet.json
+```
+
+### 4. Self-Diagnostic Commands
 
 SafeGate Edge includes self-diagnostic tools to ensure the environment is healthy and configurations are valid before you trust it in production.
 

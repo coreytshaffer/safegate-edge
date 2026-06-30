@@ -85,3 +85,35 @@ def validate_verification_result(result: dict[str, Any]) -> List[str]:
         errors.append("Invalid or missing schema_version, expected 'verification_result.v1'")
         
     return errors
+
+HUMAN_REVIEW_REQUIRED_FIELDS = frozenset({
+    "schema_version",
+    "review_id",
+    "action_id",
+    "action_hash",
+    "action_type",
+    "risk_level",
+    "policy_id",
+    "policy_rule_id",
+    "approval_required",
+    "human_summary",
+    "requested_by",
+    "created_at",
+    "expires_at",
+    "review_status",
+    "approval_instructions"
+})
+
+def validate_review_packet(packet: dict[str, Any]) -> List[str]:
+    errors = []
+    if not isinstance(packet, dict):
+        return ["HumanReviewPacket must be a JSON object"]
+        
+    missing = HUMAN_REVIEW_REQUIRED_FIELDS - set(packet.keys())
+    if missing:
+        errors.append(f"Missing required fields in HumanReviewPacket: {sorted(missing)}")
+        
+    if packet.get("schema_version") != "human_review_packet.v1":
+        errors.append("Invalid or missing schema_version, expected 'human_review_packet.v1'")
+        
+    return errors

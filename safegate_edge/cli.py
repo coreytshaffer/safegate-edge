@@ -2,7 +2,7 @@ import argparse
 import json
 import sys
 import os
-from typing import Optional
+from typing import Optional, Any
 
 from .canonical import canonical_action_hash
 from .verifier import verify_approval
@@ -11,6 +11,8 @@ from .decision import create_execution_decision
 from .evidence import export_evidence_bundle
 from .doctor import run_doctor_checks, print_doctor_results
 from .preflight import run_preflight_checks, print_preflight_results
+
+from .review import create_review_packet
 
 def cmd_doctor(args: argparse.Namespace) -> None:
     try:
@@ -34,6 +36,11 @@ def load_json(filepath: str) -> dict:
     with open(filepath, "r", encoding="utf-8") as f:
         return json.load(f)
 
+def _write_json(filepath: str, data: Any) -> None:
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
 def cmd_hash(args: argparse.Namespace) -> None:
     try:
         action = load_json(args.action)
@@ -41,6 +48,26 @@ def cmd_hash(args: argparse.Namespace) -> None:
         print(action_hash)
     except Exception as e:
         print(f"Error computing hash: {e}", file=sys.stderr)
+        sys.exit(1)
+
+def cmd_review_create(args: argparse.Namespace) -> None:
+    try:
+        action = load_json(args.action)
+        policy = load_json(args.policy)
+        packet = create_review_packet(action, policy)
+        
+        out_dir = os.path.dirname(args.output)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+            
+        with open(args.output, "w", encoding="utf-8") as f:
+            json.dump(packet, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+            
+        print(f"Review packet created at {args.output}")
+        sys.exit(0)
+    except Exception as e:
+        print(f"Error creating review packet: {e}", file=sys.stderr)
         sys.exit(1)
 
 def cmd_verify(args: argparse.Namespace) -> None:
@@ -121,6 +148,16 @@ def main(argv: Optional[list[str]] = None) -> None:
     hash_parser = subparsers.add_parser("hash", help="Compute the canonical hash of an action request")
     hash_parser.add_argument("--action", required=True, help="Path to the action request JSON file")
     hash_parser.set_defaults(func=cmd_hash)
+
+    # `review` command
+    review_parser = subparsers.add_parser("review", help="Review packet commands")
+    review_subparsers = review_parser.add_subparsers(dest="review_command", required=True)
+    
+    review_create_parser = review_subparsers.add_parser("create", help="Create a human review packet")
+    review_create_parser.add_argument("--action", required=True, help="Path to the action request JSON file")
+    review_create_parser.add_argument("--policy", default="examples/config/default_policy.json", help="Path to the policy JSON file")
+    review_create_parser.add_argument("--output", required=True, help="Path to write the review packet JSON")
+    review_create_parser.set_defaults(func=cmd_review_create)
 
     # `verify` command
     verify_parser = subparsers.add_parser("verify", help="Verify an action against an approval packet")
