@@ -1,0 +1,23 @@
+{
+  "schema_version": "human_review_packet.v1",
+  "review_id": "rev-22e06d8e",
+  "action_id": "act-123456",
+  "action_hash": "sha256:22e06d8e65667e9582c1697fbd302d0ca0f028e61bb9dc9ab6c43541cd5b7069",
+  "action_type": "delete_customer_exports",
+  "risk_level": "high",
+  "policy_id": "default",
+  "policy_rule_id": "high-risk-approval",
+  "approval_required": true,
+  "human_summary": "Delete files matching ./customer_exports/*.csv from /app/data.",
+  "requested_by": "agent-alpha",
+  "created_at": "2026-07-01T12:00:00Z",
+  "expires_at": "2026-07-01T13:00:00Z",
+  "review_status": "pending_review",
+  "approval_instructions": "Review the exact action details and action hash before approving. Approval must bind to this action_hash. If the action changes, SafeGate must block execution.",
+  "target": "./customer_exports/*.csv",
+  "command": "rm ./customer_exports/*.csv",
+  "working_directory": "/app/data",
+  "metadata": {
+    "ticket": "ENG-402"
+  }
+}

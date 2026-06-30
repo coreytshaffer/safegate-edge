@@ -35,7 +35,17 @@ To ensure deterministic hashing across different platforms and programming langu
 
 The resulting byte string is then hashed using SHA-256, and prefixed with `sha256:` to produce the final digest (e.g., `sha256:abcd...`).
 
-## Usage & Demo
+## End-to-End Demo
+
+Run:
+
+```bash
+python -m safegate_edge.cli demo run --output-dir examples/demo_runs/safegate_demo
+```
+
+The demo creates a human review packet, generates approved and denied approval packets, verifies the original action, verifies a mutated action, verifies a denied approval, and exports a reviewer-facing evidence bundle.
+
+## Usage
 
 The SafeGate CLI allows you to compute hashes and verify approvals.
 

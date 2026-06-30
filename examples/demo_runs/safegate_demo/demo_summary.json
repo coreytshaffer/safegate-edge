@@ -1,0 +1,27 @@
+{
+  "schema_version": "safegate_demo_summary.v1",
+  "demo_id": "safegate-demo-delete-customer-exports",
+  "generated_at": "2026-07-01T12:00:00Z",
+  "scenario": "delete_customer_exports",
+  "assertions": {
+    "review_packet_created": true,
+    "approval_packet_created": true,
+    "denied_approval_packet_created": true,
+    "original_allowed": true,
+    "mutated_blocked": true,
+    "denied_blocked": true,
+    "evidence_bundle_created": true
+  },
+  "results": {
+    "original_decision": "allowed",
+    "original_reason": "valid_approval",
+    "mutated_decision": "blocked",
+    "mutated_reason": "action_hash_mismatch",
+    "denied_decision": "blocked",
+    "denied_reason": "approval_not_granted"
+  },
+  "hardware_attestation": {
+    "implemented": false,
+    "note": "SafeGate is hardware-ready, not hardware-verified yet."
+  }
+}

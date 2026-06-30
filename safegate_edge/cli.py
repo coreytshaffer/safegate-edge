@@ -168,6 +168,22 @@ def cmd_evidence_export_smoke(args: argparse.Namespace) -> None:
         print(f"Error during evidence export smoke: {e}", file=sys.stderr)
         sys.exit(1)
 
+def cmd_demo_run(args: argparse.Namespace) -> None:
+    from .demo import run_demo
+    try:
+        run_demo(
+            output_dir=args.output_dir,
+            original_action_path=args.original_action,
+            mutated_action_path=args.mutated_action,
+            policy_path=args.policy,
+            approvers_path=args.approvers
+        )
+        print(f"Demo run completed successfully. Outputs written to {args.output_dir}")
+        sys.exit(0)
+    except Exception as e:
+        print(f"Error during demo run: {e}", file=sys.stderr)
+        sys.exit(1)
+
 def main(argv: Optional[list[str]] = None) -> None:
     parser = argparse.ArgumentParser(description="SafeGate Edge CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -223,6 +239,18 @@ def main(argv: Optional[list[str]] = None) -> None:
     preflight_parser = subparsers.add_parser("preflight", help="Run preflight checks on an action request")
     preflight_parser.add_argument("--action", required=True, help="Path to the action request JSON file")
     preflight_parser.set_defaults(func=cmd_preflight)
+
+    # `demo` command
+    demo_parser = subparsers.add_parser("demo", help="End-to-End Demo Scenario")
+    demo_subparsers = demo_parser.add_subparsers(dest="demo_command", required=True)
+    
+    demo_run_parser = demo_subparsers.add_parser("run", help="Run the full demo flow")
+    demo_run_parser.add_argument("--output-dir", required=True, help="Path to export the demo run output")
+    demo_run_parser.add_argument("--original-action", default="examples/action_requests/delete_customer_exports_original.json", help="Path to original action request")
+    demo_run_parser.add_argument("--mutated-action", default="examples/action_requests/delete_customer_exports_mutated.json", help="Path to mutated action request")
+    demo_run_parser.add_argument("--policy", default="examples/config/default_policy.json", help="Path to policy")
+    demo_run_parser.add_argument("--approvers", default="examples/config/approvers.json", help="Path to approvers registry")
+    demo_run_parser.set_defaults(func=cmd_demo_run)
 
     args = parser.parse_args(argv)
     args.func(args)

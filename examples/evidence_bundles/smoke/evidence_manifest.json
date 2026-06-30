@@ -1,6 +1,6 @@
 {
   "schema_version": "evidence_manifest.v1",
-  "exported_at": "2026-06-30T07:19:49.491297Z",
+  "exported_at": "2026-06-30T07:25:45.839468Z",
   "files": [
     {
       "path": "action_request.json",
@@ -12,11 +12,11 @@
     },
     {
       "path": "verification_result.json",
-      "sha256": "sha256:806dfc93f401c88a2a8b9be56989544179238066c19917833fb366793c21884b"
+      "sha256": "sha256:af0ffabb9d0a81bf0af259f9d0469781a49d52892714e9273eba866e4ccfa32f"
     },
     {
       "path": "execution_decision.json",
-      "sha256": "sha256:bb5fbae98cac39a34cc4c0fd2761e225653ecdf3e70a140dfc0c782b6fc90ddf"
+      "sha256": "sha256:0fc83a2214f09d86edb61140c35a4e0cb7bd0ced9875c7feb4bc43f9aeea3ca0"
     },
     {
       "path": "policy_snapshot.json",
@@ -24,8 +24,8 @@
     },
     {
       "path": "observe_events.jsonl",
-      "sha256": "sha256:9abb70ed5b8ba99876a64ba9305450fb49f6312e19332f65711ec3ecef90d468"
+      "sha256": "sha256:1d98eb5588fa87d70544292d984cd9c7fa0453baafd382ae9a16e1e83e0a7af5"
     }
   ],
-  "bundle_hash": "sha256:46cac157d264ca672e81f253f86e3422935d8a392ba3c0441a0e9b1be08af6f7"
+  "bundle_hash": "sha256:c9d64e4f26b94d09cf35e8549d8d715b02ca3d618862712b1f6725e656f9b0a2"
 }
