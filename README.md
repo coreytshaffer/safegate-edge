@@ -56,3 +56,8 @@ safegate verify \
   --action examples/action_requests/delete_customer_exports_mutated.json \
   --approval examples/approval_packets/valid_approval.json
 ```
+
+
+## SafeGate Observe
+
+SafeGate Observe provides an append-only verifiable event trace for every verification decision. It exports an EvidenceBundle containing the original request, the approval, the verification result, the execution decision, and a JSONL event trace where each event is cryptographically hashed and linked to the previous event (forming a hash chain). An evidence manifest includes file-level SHA-256 hashes to guarantee the bundle's integrity.

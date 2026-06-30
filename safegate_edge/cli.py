@@ -5,6 +5,9 @@ from typing import Optional
 
 from .canonical import canonical_action_hash
 from .verifier import verify_approval
+from .observe import EventLogChain
+from .decision import create_execution_decision
+from .evidence import export_evidence_bundle
 
 def load_json(filepath: str) -> dict:
     with open(filepath, "r", encoding="utf-8") as f:
@@ -26,7 +29,6 @@ def cmd_verify(args: argparse.Namespace) -> None:
         
         result = verify_approval(action, approval)
         
-        # Output the result as JSON
         print(json.dumps(result, indent=2))
         
         if result["decision"] == "blocked":
@@ -36,6 +38,47 @@ def cmd_verify(args: argparse.Namespace) -> None:
             
     except Exception as e:
         print(f"Error during verification: {e}", file=sys.stderr)
+        sys.exit(1)
+
+def cmd_evidence_export_smoke(args: argparse.Namespace) -> None:
+    try:
+        original_action = load_json("examples/action_requests/delete_customer_exports_original.json")
+        mutated_action = load_json("examples/action_requests/delete_customer_exports_mutated.json")
+        valid_approval = load_json("examples/approval_packets/valid_approval.json")
+        
+        chain = EventLogChain()
+        
+        # 1. Original action requested
+        chain.append("ACTION_REQUESTED", {"action": original_action}, original_action["action_id"])
+        
+        # 2. Approval granted
+        chain.append("APPROVAL_GRANTED", {"approval": valid_approval}, original_action["action_id"], valid_approval["approval_id"])
+        
+        # 3. Mutated action attempted/verified
+        vr = verify_approval(mutated_action, valid_approval)
+        
+        # 4. Hash mismatch detected
+        chain.append("ACTION_HASH_MISMATCH", vr["details"], mutated_action["action_id"], valid_approval["approval_id"], vr["verification_id"])
+        
+        # 5. Execution decision
+        ed = create_execution_decision(vr, execution_mode="simulated")
+        chain.append("ACTION_BLOCKED", {"decision_id": ed["decision_id"], "reason": ed["reason"]}, mutated_action["action_id"], valid_approval["approval_id"], vr["verification_id"], ed["decision_id"])
+        
+        # 6. Export evidence
+        chain.append("EVIDENCE_EXPORTED", {"output_dir": args.output_dir}, mutated_action["action_id"], valid_approval["approval_id"], vr["verification_id"], ed["decision_id"])
+        
+        manifest = export_evidence_bundle(
+            action_request=mutated_action,
+            approval_packet=valid_approval,
+            verification_result=vr,
+            execution_decision=ed,
+            observe_events_jsonl=chain.to_jsonl(),
+            output_dir=args.output_dir
+        )
+        print(f"Evidence bundle exported to {args.output_dir}")
+        print(f"Bundle Hash: {manifest['bundle_hash']}")
+    except Exception as e:
+        print(f"Error during evidence export smoke: {e}", file=sys.stderr)
         sys.exit(1)
 
 def main(argv: Optional[list[str]] = None) -> None:
@@ -52,6 +95,14 @@ def main(argv: Optional[list[str]] = None) -> None:
     verify_parser.add_argument("--action", required=True, help="Path to the action request JSON file")
     verify_parser.add_argument("--approval", help="Path to the approval packet JSON file")
     verify_parser.set_defaults(func=cmd_verify)
+    
+    # `evidence` command
+    evidence_parser = subparsers.add_parser("evidence", help="Evidence bundle commands")
+    evidence_subparsers = evidence_parser.add_subparsers(dest="evidence_command", required=True)
+    
+    export_smoke_parser = evidence_subparsers.add_parser("export-smoke", help="Export a smoke demo evidence bundle")
+    export_smoke_parser.add_argument("--output-dir", required=True, help="Path to export the evidence bundle")
+    export_smoke_parser.set_defaults(func=cmd_evidence_export_smoke)
 
     args = parser.parse_args(argv)
     args.func(args)
