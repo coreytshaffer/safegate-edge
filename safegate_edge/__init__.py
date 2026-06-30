@@ -1,0 +1,1 @@
+"""SafeGate Edge package."""

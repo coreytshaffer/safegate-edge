@@ -1,0 +1,14 @@
+{
+  "approval_id": "apr-abcdef",
+  "action_id": "act-123456",
+  "action_hash": "sha256:92a4ec768c66a81dcd43cc1658b0d1c509fff3c499fe63bdbd63630b3c9caa49",
+  "approver_id": "human-admin-01",
+  "approved_at": "2026-07-01T12:05:00Z",
+  "expires_at": "2026-07-01T14:00:00Z",
+  "approval_status": "approved",
+  "approval_method": "yubikey-piv",
+  "signature_or_attestation_placeholder": "PLACEHOLDER",
+  "metadata": {
+    "reason": "Routine cleanup verified"
+  }
+}
