@@ -1,15 +1,15 @@
 # SafeGate Edge
 
-> **MFA verifies identity. SafeGate verifies the action.**
-
 ## 1. What is SafeGate Edge?
-SafeGate Edge is a local, verifiable approval boundary for high-risk AI and automation actions. It acts as a deterministic interceptor—halting high-risk actions pending physical human approval, then generating a tamper-evident evidence bundle to prove that the executed action perfectly matches the human-approved intent.
+SafeGate Edge is a local prototype for checking AI and automation actions against policy. Normal verification denies approval-required actions because the current approval packets lack authenticated approval evidence.
 
 ## 2. Why does it matter?
-We want AI agents and automation tools to handle more complex work, but we cannot let them unilaterally run destructive commands or mutate high-risk actions after approval. Standard IAM tools focus on *who* is allowed to act; SafeGate focuses on *what exact action* is being approved. By cryptographically binding a human approval to the exact canonical hash of an action request, SafeGate ensures that if an agent hallucinates or mutates an action post-approval, it fails closed.
+SafeGate hashes the exact action request so the verifier can compare it with the action recorded in a review packet. In the explicit demo, a simulated approval records that hash and the policy context. The verifier checks the policy ID, matching rule and approval requirement against the evaluated policy. It also checks that the named approver is active in the caller-configured registry and that the registry permits the packet's approval method.
+
+Use `python -m safegate_edge.cli verify --help` for normal verification options. The optional `--approvers` flag selects the registry JSON file and defaults to `examples/config/approvers.json`.
 
 ## 3. Run the Demo
-SafeGate includes a deterministic end-to-end demo simulating the approval lifecycle.
+SafeGate includes a deterministic demo of the approval lifecycle. A matching simulated approval can return `simulated_allowed` only in an explicit demo context. Execution authorization for approval-required actions requires authenticated approval evidence.
 
 ```bash
 # Clone the repository
@@ -20,15 +20,13 @@ cd safegate_edge
 python -m safegate_edge.cli demo run --output-dir examples/demo_runs/safegate_demo
 ```
 
-The output will include the full lifecycle of an intercepted threat: the human review packet, the cryptographically bound approval, and the exported evidence bundle proving why a mutated action was blocked.
+The output includes the review packet, the simulated approval and the evidence bundle for the changed action that verification blocked.
 
-## 4. What the Demo Proves
-* **Canonical action hashing:** SafeGate produces a deterministic cryptographic hash for the exact action request, avoiding drift from JSON formatting differences.
-* **Hash-bound approval:** An approval packet securely binds an active approver to one exact canonical action hash.
-* **Fail-closed mutation blocking:** If the attempted action changes after approval, SafeGate detects the hash mismatch and blocks the action.
-* **Denied approval blocking:** A denied approval packet cannot be treated as permission.
-* **Policy-bound verification:** SafeGate only allows approval-free actions when a valid policy explicitly says approval is not required.
-* **Tamper-evident evidence:** The demo exports a hash-linked evidence bundle showing the decision trace from review through verification.
+## 4. What the Demo Shows
+
+- **Canonical action hashing.** JSON formatting differences leave the canonical action hash unchanged.
+- **Action matching.** The demo records a simulated approval for one exact action hash. Verification blocks a changed action or a denied packet.
+- **Decision trace.** The demo exports a hash-linked evidence bundle for the changed action.
 
 ## 5. Architecture Diagram
 
@@ -36,14 +34,11 @@ The output will include the full lifecycle of an intercepted threat: the human r
 flowchart LR
     A[AI agent proposes action] --> B[SafeGate canonicalizes action]
     B --> C[Human review packet]
-    C --> D[Active approver creates approval packet]
-    D --> E[Verifier checks policy + action hash]
-    E -->|same hash| F[Allowed]
-    E -->|changed hash| G[Blocked]
-    E -->|denied approval| H[Blocked]
-    F --> I[Evidence bundle]
-    G --> I
-    H --> I
+    C --> D[Demo creates simulated approval packet]
+    D --> E[Demo verifier checks policy, registry and action hash]
+    E -->|all checks pass| F[Simulated approval only]
+    E -->|a check fails| G[Blocked]
+    G --> I[Evidence bundle for changed action]
 ```
 
 ## 6. Documentation Links
@@ -53,11 +48,10 @@ flowchart LR
 - [Architecture](docs/architecture.md)
 - [Threat Model](docs/threat_model.md)
 - [Limitations](docs/limitations.md)
-- [Release Notes](docs/release_notes.md)
+- [Historical Release Notes](docs/release_notes.md)
 
 ## 7. Current Limitations
-SafeGate is hardware-ready, not hardware-verified yet.
-- **Hardware attestation is not implemented yet:** The current demo uses simulated approval packets. Policies can reserve space for hardware attestation, but SafeGate does not yet verify YubiKey, WebAuthn, TPM, Secure Enclave, or passkey evidence.
-- **Approver identity is local and static:** The approver registry is currently a JSON configuration file, not a production identity provider integration.
-- **No kernel-level sandboxing:** SafeGate is currently a verifier and approval gateway. It relies on an agent framework to call it before execution.
-- **Prototype evidence, not certification:** The demo proves the control-plane pattern. It does not certify production security.
+
+- **Hardware attestation is future work.** Approval methods may appear in policy or registry configuration before the verifier can authenticate evidence from those methods.
+- **Local registry.** The JSON registry defines active approver IDs and permitted methods. These entries are configuration, so authenticated identity requires additional evidence.
+- **Caller enforcement.** An agent framework must call the verifier and honor its decision before execution.

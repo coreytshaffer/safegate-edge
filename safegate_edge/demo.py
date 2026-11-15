@@ -72,6 +72,8 @@ def run_demo(
 
     # 5. Create review packet
     review_packet = create_review_packet(original_action, policy)
+    # Replay the example at the action's recorded time rather than the wall clock.
+    demo_now = review_packet["created_at"]
     _write_json(os.path.join(output_dir, "review_packet.json"), review_packet)
 
     # 6. Create approved approval packet
@@ -80,7 +82,8 @@ def run_demo(
         approver_id=approver_id,
         approvers_registry=approvers_registry,
         approval_status="approved",
-        approval_method="simulated"
+        approval_method="simulated",
+        now_iso=demo_now,
     )
     _write_json(os.path.join(output_dir, "generated_approval.json"), approved_packet)
 
@@ -90,20 +93,22 @@ def run_demo(
         approver_id=approver_id,
         approvers_registry=approvers_registry,
         approval_status="denied",
-        approval_method="simulated"
+        approval_method="simulated",
+        now_iso=demo_now,
     )
     _write_json(os.path.join(output_dir, "generated_denied_approval.json"), denied_packet)
 
     # 8. Verify original action with approved packet
-    verify_allowed = verify_approval(original_action, policy, approved_packet)
+    verification_options = dict(approvers_registry=approvers_registry, simulation=True, now_iso=demo_now)
+    verify_allowed = verify_approval(original_action, policy, approved_packet, **verification_options)
     _write_json(os.path.join(output_dir, "verify_original_allowed.json"), verify_allowed)
 
     # 9. Verify mutated action with approved packet
-    verify_mutated = verify_approval(mutated_action, policy, approved_packet)
+    verify_mutated = verify_approval(mutated_action, policy, approved_packet, **verification_options)
     _write_json(os.path.join(output_dir, "verify_mutated_blocked.json"), verify_mutated)
 
     # 10. Verify original action with denied packet
-    verify_denied = verify_approval(original_action, policy, denied_packet)
+    verify_denied = verify_approval(original_action, policy, denied_packet, **verification_options)
     _write_json(os.path.join(output_dir, "verify_denied_blocked.json"), verify_denied)
 
     # 11. Export evidence bundle for the mutated blocked path
@@ -137,13 +142,14 @@ def run_demo(
     summary = {
         "schema_version": "safegate_demo_summary.v1",
         "demo_id": "safegate-demo-delete-customer-exports",
-        "generated_at": "2026-07-01T12:00:00Z",
+        "generated_at": demo_now,
         "scenario": "delete_customer_exports",
+        "simulation_only": True,
         "assertions": {
             "review_packet_created": os.path.exists(os.path.join(output_dir, "review_packet.json")),
             "approval_packet_created": os.path.exists(os.path.join(output_dir, "generated_approval.json")),
             "denied_approval_packet_created": os.path.exists(os.path.join(output_dir, "generated_denied_approval.json")),
-            "original_allowed": verify_allowed.get("decision") == "allowed",
+            "original_allowed": verify_allowed.get("decision") == "simulated_allowed",
             "mutated_blocked": verify_mutated.get("decision") == "blocked",
             "denied_blocked": verify_denied.get("decision") == "blocked",
             "evidence_bundle_created": os.path.exists(os.path.join(evidence_dir, "evidence_manifest.json"))
@@ -167,7 +173,7 @@ def run_demo(
     readme_content = """# SafeGate Edge Demo Run
 
 ## What this demo proves
-This demo shows SafeGate’s simulated approval workflow. It proves that an approval binds to one exact canonical action hash. The original action is allowed, a mutated action is blocked, and a denied approval is blocked. Hardware attestation is reserved for a future implementation; this demo does not claim hardware-verified approval.
+This demo shows how SafeGate binds a simulated approval to one exact canonical action hash. The original action passes only in simulation. The changed action and denied approval are blocked. Demo results grant no execution authority.
 
 ## Scenario
 An agent requests to run `rm ./customer_exports/*.csv`. This is a high-risk action according to the loaded policy and requires human approval.
@@ -175,9 +181,9 @@ The demo simulates generating a review packet, a human approving it, and subsequ
 
 ## Generated Artifacts
 - **review_packet.json**: The exact payload presented to the human approver.
-- **generated_approval.json**: The cryptographic approval binding the approver to the canonical hash of the action.
+- **generated_approval.json**: A simulated approval containing the canonical action hash.
 - **generated_denied_approval.json**: An example of a rejected request.
-- **verify_original_allowed.json**: The gateway allowing the exact requested action.
+- **verify_original_allowed.json**: The result for the exact action in simulation mode.
 - **verify_mutated_blocked.json**: The gateway blocking an action that was mutated (e.g. `rm -rf /`) after approval.
 - **verify_denied_blocked.json**: The gateway blocking the original action when the approval was explicitly denied.
 - **evidence_bundle/**: The full cryptographically-chained evidence bundle exported from the blocked mutation attempt.
@@ -189,7 +195,7 @@ The demo simulates generating a review packet, a human approving it, and subsequ
 - Denied Decision: {denied_decision} ({denied_reason})
 
 ## Key Safety Property
-The evidence bundle specifically tracks the "mutated blocked" path to prove that even if an agent has a valid approval packet, it cannot execute an action that differs from what was explicitly reviewed.
+The evidence bundle records why the verifier rejected the changed action in this simulation.
 
 ## Hardware Attestation Boundary
 Policies can require hardware attestation. For this demo, hardware verification is explicitly marked as not implemented to avoid false security claims. SafeGate is hardware-ready, not hardware-verified yet.

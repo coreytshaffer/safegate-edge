@@ -1,16 +1,14 @@
 # Limitations
 
-SafeGate Edge is currently a functional, deterministic prototype demonstrating the core mechanics of a secure agent approval flow. It proves the *mechanics* of verification, but not the *infrastructure* of security.
+SafeGate Edge is a prototype for verifying an action against policy and its canonical hash. Normal verification denies approval-required actions because the current packet format lacks authenticated approval evidence.
 
 ## Hardware Attestation
 
-**SafeGate is hardware-ready, not hardware-verified yet.** 
-
-While the policy engine can require hardware security keys, and the verifier will block requests that lack them when required, the system does not yet perform real cryptographic verification of hardware tokens (e.g., FIDO2/WebAuthn signatures or TPM attestation). The `hardware_security_key` approval method is reserved for future implementation.
+Policies can require hardware-backed approval. Verification of FIDO2/WebAuthn signatures, TPM attestation and other hardware evidence is future work.
 
 ## Identity and Authentication
 
-The approver registry is currently a static JSON file (`approvers.json`). It is not integrated with a real Identity Provider (IdP) like Okta or Active Directory. It simulates identity rather than cryptographically verifying a user session.
+The caller supplies a JSON approver registry. The verifier uses it to check active status and permitted approval methods. Cryptographic authentication of the person named in a packet requires additional evidence.
 
 ## Runtime Isolation
 
@@ -22,4 +20,4 @@ While the evidence bundle is cryptographically chained and tamper-evident, it is
 
 ## Summary
 
-This prototype proves that **if** an agent calls the gate, and **if** the approval signatures are valid, the action is cryptographically constrained to its approved intent. The next phases of development will focus on replacing the simulated trust anchors with real cryptographic identity and hardware isolation.
+The explicit demo can report a successful simulated match for one canonical action hash. Use that result to evaluate the verification flow. Execution authorization for approval-required actions requires authenticated approval evidence.

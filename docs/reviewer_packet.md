@@ -1,15 +1,13 @@
 # Reviewer Packet
 
 ## What is SafeGate Edge?
-SafeGate Edge is a local, verifiable safety boundary for autonomous agents. It acts as an interceptor between an agent’s requested action (like executing a shell command or making an API call) and the actual execution of that action. 
-
-SafeGate Edge demonstrates a local approval gateway where a human reviews one exact canonical action hash, an active approver generates an approval packet, the original action is allowed, changed actions fail closed, denied approvals fail closed, and the full decision trace is exported as tamper-evident evidence.
+SafeGate Edge is a local verifier for actions proposed by autonomous agents. Normal verification denies approval-required actions because the current packets lack authenticated approval evidence. The explicit demo can report a matching simulated approval for demonstration only. It blocks changed actions and denied packets and exports the decision trace for a changed action.
 
 ## Core Capabilities
-- **Canonical Hashing**: Deterministically hashes all inputs to ensure that the action reviewed by the human is cryptographically identical to the action being executed by the agent.
-- **Policy Enforcement**: Enforces risk-based rules on actions (e.g., automatically allowing low-risk actions while blocking high-risk actions pending human approval).
-- **Human Review Contract**: Connects directly with a registered human approver, ensuring that decisions are explicitly signed off by verified personnel.
-- **Immutable Evidence**: Generates a cryptographically-chained event log of the entire decision lifecycle, allowing any party to audit exactly why an action was allowed or blocked.
+- **Canonical hashing.** Compares the action's computed hash with the hash in the packet.
+- **Policy verification.** Evaluates the risk rule and compares the policy ID, rule ID and approval requirement with the packet.
+- **Registry checks.** Checks the named approver's active status and the packet method against the caller-configured registry. Execution authorization for approval-required actions requires authenticated approval evidence.
+- **Decision trace.** The demo exports a hash-linked event log for the changed request.
 
 ## Navigating the Prototype
 If you are evaluating this prototype, we recommend the following path:

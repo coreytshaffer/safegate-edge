@@ -1,6 +1,4 @@
-import os
 import json
-import pytest
 from safegate_edge.demo import run_demo
 
 def test_demo_run(tmp_path):
@@ -35,12 +33,16 @@ def test_demo_run(tmp_path):
     assert assertions.get("evidence_bundle_created") is True
     
     results = summary.get("results", {})
-    assert results.get("original_decision") == "allowed"
-    assert results.get("original_reason") == "valid_approval"
+    assert results.get("original_decision") == "simulated_allowed"
+    assert results.get("original_reason") == "valid_simulated_approval"
     assert results.get("mutated_decision") == "blocked"
     assert results.get("mutated_reason") == "action_hash_mismatch"
     assert results.get("denied_decision") == "blocked"
     assert results.get("denied_reason") == "approval_not_granted"
+
+    original_result = json.loads((output_dir / "verify_original_allowed.json").read_text(encoding="utf-8"))
+    assert original_result["decision"] == "simulated_allowed"
+    assert original_result["details"]["simulation_only"] is True
 
 def test_demo_run_overwrite_cleans_safely(tmp_path):
     output_dir = tmp_path / "safegate_demo"
