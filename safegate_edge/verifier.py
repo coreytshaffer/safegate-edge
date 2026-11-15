@@ -103,17 +103,17 @@ def verify_approval(
     approval_req = policy_module.requires_approval(policy, risk_level, action.get("action_type")) is not False
     result["approval_required"] = approval_req
 
-    policy_context = {key: result[key] for key in ("policy_id", "policy_rule_id")}
-    if not all(isinstance(value, str) and value.strip() for value in policy_context.values()):
-        result["reason"] = "policy_context_unresolved"
-        return result
-
     # 7. If approval is not required, allow
     if not approval_req:
         result["decision"] = "simulated_allowed" if simulation else "allowed"
         result["reason"] = "approval_not_required"
         if approval is not None:
             details["approval_present_but_not_required"] = True
+        return result
+
+    policy_context = {key: result[key] for key in ("policy_id", "policy_rule_id")}
+    if not all(isinstance(value, str) and value.strip() for value in policy_context.values()):
+        result["reason"] = "policy_context_unresolved"
         return result
 
     # 8. If approval is required and missing, block

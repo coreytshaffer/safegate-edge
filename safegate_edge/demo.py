@@ -1,10 +1,11 @@
 import json
 import os
 import shutil
-from typing import Any, Optional
+from typing import Any
 
 from .review import create_review_packet
 from .approve import create_approval_packet
+from .approvers import get_active_approvers, validate_approver_registry
 from .verifier import verify_approval
 from .observe import EventLogChain
 from .decision import create_execution_decision
@@ -54,29 +55,29 @@ def run_demo(
     policy_path: str = "examples/config/default_policy.json",
     approvers_path: str = "examples/config/approvers.json"
 ) -> None:
-    # Safely clean/create targeted output files and directories
-    clean_demo_output_dir(output_dir)
-    
-    # 1. Load data
     original_action = _load_json(original_action_path)
     mutated_action = _load_json(mutated_action_path)
     policy = _load_json(policy_path)
     approvers_registry = _load_json(approvers_path)
-    
-    # We will use 'corey' as the default approver or just find the first active one
-    approvers = approvers_registry.get("approvers", [])
-    active_approvers = [a for a in approvers if a.get("status") == "active"]
-    if not active_approvers:
-        raise ValueError("No active approvers found in registry")
-    approver_id = active_approvers[0]["approver_id"]
+    registry_errors = validate_approver_registry(approvers_registry)
+    if registry_errors:
+        raise ValueError(f"Invalid approver registry: {', '.join(registry_errors)}")
 
-    # 5. Create review packet
+    approver_id = None
+    for approver in get_active_approvers(approvers_registry):
+        methods = approver.get("approval_methods")
+        if isinstance(methods, list) and "simulated" in methods:
+            candidate_id = approver.get("approver_id")
+            if isinstance(candidate_id, str) and candidate_id.strip():
+                approver_id = candidate_id
+                break
+    if approver_id is None:
+        raise ValueError("No active approver permits simulated approval")
+
     review_packet = create_review_packet(original_action, policy)
     # Replay the example at the action's recorded time rather than the wall clock.
     demo_now = review_packet["created_at"]
-    _write_json(os.path.join(output_dir, "review_packet.json"), review_packet)
 
-    # 6. Create approved approval packet
     approved_packet = create_approval_packet(
         review_packet=review_packet,
         approver_id=approver_id,
@@ -85,9 +86,7 @@ def run_demo(
         approval_method="simulated",
         now_iso=demo_now,
     )
-    _write_json(os.path.join(output_dir, "generated_approval.json"), approved_packet)
 
-    # 7. Create denied approval packet
     denied_packet = create_approval_packet(
         review_packet=review_packet,
         approver_id=approver_id,
@@ -96,22 +95,34 @@ def run_demo(
         approval_method="simulated",
         now_iso=demo_now,
     )
-    _write_json(os.path.join(output_dir, "generated_denied_approval.json"), denied_packet)
 
-    # 8. Verify original action with approved packet
     verification_options = dict(approvers_registry=approvers_registry, simulation=True, now_iso=demo_now)
     verify_allowed = verify_approval(original_action, policy, approved_packet, **verification_options)
-    _write_json(os.path.join(output_dir, "verify_original_allowed.json"), verify_allowed)
-
-    # 9. Verify mutated action with approved packet
     verify_mutated = verify_approval(mutated_action, policy, approved_packet, **verification_options)
-    _write_json(os.path.join(output_dir, "verify_mutated_blocked.json"), verify_mutated)
-
-    # 10. Verify original action with denied packet
     verify_denied = verify_approval(original_action, policy, denied_packet, **verification_options)
+
+    expected_outcomes = (
+        ("original action", verify_allowed, "simulated_allowed", "valid_simulated_approval"),
+        ("changed action", verify_mutated, "blocked", "action_hash_mismatch"),
+        ("denied approval", verify_denied, "blocked", "approval_not_granted"),
+    )
+    for scenario, result, decision, reason in expected_outcomes:
+        if (result["decision"], result["reason"]) != (decision, reason):
+            raise ValueError(
+                f"Demo {scenario} expected {decision} ({reason}), "
+                f"got {result['decision']} ({result['reason']})"
+            )
+
+    # Preserve the previous run until the new results support the scripted trace.
+    clean_demo_output_dir(output_dir)
+    _write_json(os.path.join(output_dir, "review_packet.json"), review_packet)
+    _write_json(os.path.join(output_dir, "generated_approval.json"), approved_packet)
+    _write_json(os.path.join(output_dir, "generated_denied_approval.json"), denied_packet)
+    _write_json(os.path.join(output_dir, "verify_original_allowed.json"), verify_allowed)
+    _write_json(os.path.join(output_dir, "verify_mutated_blocked.json"), verify_mutated)
     _write_json(os.path.join(output_dir, "verify_denied_blocked.json"), verify_denied)
 
-    # 11. Export evidence bundle for the mutated blocked path
+    # Export evidence for the changed action.
     evidence_dir = os.path.join(output_dir, "evidence_bundle")
         
     chain = EventLogChain()
@@ -138,7 +149,7 @@ def run_demo(
         policy_snapshot=policy
     )
 
-    # 12. Write demo_summary.json
+    # Write demo_summary.json
     summary = {
         "schema_version": "safegate_demo_summary.v1",
         "demo_id": "safegate-demo-delete-customer-exports",
@@ -169,7 +180,7 @@ def run_demo(
     }
     _write_json(os.path.join(output_dir, "demo_summary.json"), summary)
 
-    # 13. Write README_DEMO.md
+    # Write README_DEMO.md
     readme_content = """# SafeGate Edge Demo Run
 
 ## What this demo proves

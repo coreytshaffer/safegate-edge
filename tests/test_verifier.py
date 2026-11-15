@@ -131,6 +131,20 @@ def test_verify_low_risk_missing_approval(low_risk_action, policy):
     assert result["policy_rule_id"] == "low-risk-no-approval"
     assert result["approval_required"] is False
 
+
+def test_verify_approval_free_policy_without_ids(low_risk_action):
+    policy = {
+        "schema_version": "policy.v1",
+        "rules": [{"risk_level": "low", "approval_required": False}],
+    }
+
+    result = verify_approval(low_risk_action, policy)
+
+    assert result["decision"] == "allowed"
+    assert result["reason"] == "approval_not_required"
+    assert result["approval_required"] is False
+
+
 def test_verify_low_risk_with_approval(low_risk_action, policy, valid_approval):
     result = verify_approval(low_risk_action, policy, valid_approval)
     assert result["decision"] == "allowed"

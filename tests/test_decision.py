@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 from datetime import datetime, timezone
 from safegate_edge.decision import create_execution_decision
@@ -17,6 +20,8 @@ def test_create_execution_decision_approval_free(execution_mode, expected_decisi
         "approval_id": None,
         "decision": "allowed",
         "reason": "approval_not_required",
+        "approval_required": False,
+        "approval_method": None,
     }
     
     now = datetime(2026, 7, 1, 12, 10, tzinfo=timezone.utc)
@@ -26,6 +31,19 @@ def test_create_execution_decision_approval_free(execution_mode, expected_decisi
     assert decision["execution_status"] == expected_status
     assert decision["action_id"] == "act-1"
     assert decision["execution_mode"] == execution_mode
+
+
+def test_archived_demo_verification_cannot_authorize_live_execution():
+    archived_result = Path(__file__).resolve().parents[1] / (
+        "examples/demo_runs/safegate_demo/verify_original_allowed.json"
+    )
+    verification = json.loads(archived_result.read_text(encoding="utf-8"))
+
+    decision = create_execution_decision(verification, execution_mode="live")
+
+    assert decision["decision"] == "blocked"
+    assert decision["reason"] == "execution_authority_unverified"
+    assert decision["execution_status"] == "blocked_before_execution"
 
 
 @pytest.mark.parametrize(
