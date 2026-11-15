@@ -56,7 +56,7 @@ def validate_approval(approval: dict[str, Any]) -> List[str]:
         errors.append(f"Invalid approval_status: {status}")
         
     method = approval.get("approval_method")
-    if method not in KNOWN_APPROVAL_METHODS:
+    if not isinstance(method, str) or method not in KNOWN_APPROVAL_METHODS:
         errors.append(f"approval_method_unknown: '{method}'")
         
     if "action_hash" in approval and not isinstance(approval["action_hash"], str):

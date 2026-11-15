@@ -108,15 +108,19 @@ def cmd_verify(args: argparse.Namespace) -> None:
         if os.path.exists(policy_path):
             policy = load_json(policy_path)
             
-        result = verify_approval(action, policy, approval)
+        try:
+            registry = load_json(args.approvers)
+        except FileNotFoundError:
+            registry = None
+        except (OSError, ValueError):
+            # Let the verifier reject invalid registry data only when policy requires approval.
+            registry = {}
+        result = verify_approval(action, policy, approval, approvers_registry=registry)
         
         print(f"decision: {result.get('decision')}")
         print(f"reason: {result.get('reason')}")
         
-        if result["decision"] == "blocked":
-            sys.exit(1)
-        else:
-            sys.exit(0)
+        sys.exit(0 if result["decision"] == "allowed" else 1)
             
     except Exception as e:
         print(f"Error during verification: {e}", file=sys.stderr)
@@ -128,6 +132,7 @@ def cmd_evidence_export_smoke(args: argparse.Namespace) -> None:
         mutated_action = load_json("examples/action_requests/delete_customer_exports_mutated.json")
         valid_approval = load_json("examples/approval_packets/valid_approval.json")
         policy = load_json("examples/config/default_policy.json")
+        registry = load_json("examples/config/approvers.json")
         
         chain = EventLogChain()
         
@@ -141,7 +146,12 @@ def cmd_evidence_export_smoke(args: argparse.Namespace) -> None:
         chain.append("APPROVAL_GRANTED", {"approval": valid_approval}, original_action["action_id"], valid_approval["approval_id"])
         
         # 4. Mutated action attempted/verified
-        vr = verify_approval(mutated_action, policy, valid_approval)
+        vr = verify_approval(
+            mutated_action, policy, valid_approval, now_iso=valid_approval["approved_at"],
+            approvers_registry=registry, simulation=True,
+        )
+        if vr["reason"] != "action_hash_mismatch":
+            raise ValueError(f"Unexpected simulation result: {vr['reason']}")
         
         # 5. Hash mismatch detected
         chain.append("ACTION_HASH_MISMATCH", vr.get("details", {}), mutated_action["action_id"], valid_approval["approval_id"], vr["verification_id"])
@@ -221,6 +231,7 @@ def main(argv: Optional[list[str]] = None) -> None:
     verify_parser.add_argument("--action", required=True, help="Path to the action request JSON file")
     verify_parser.add_argument("--policy", default="examples/config/default_policy.json", help="Path to the policy JSON file")
     verify_parser.add_argument("--approval", help="Path to the approval packet JSON file")
+    verify_parser.add_argument("--approvers", default="examples/config/approvers.json", help="Path to the trusted approver registry JSON file")
     verify_parser.set_defaults(func=cmd_verify)
     
     # `evidence` command

@@ -6,7 +6,8 @@
       "display_name": "Corey",
       "status": "active",
       "approval_methods": [
-        "placeholder_security_key"
+        "placeholder_security_key",
+        "simulated"
       ],
       "public_key_fingerprint": "placeholder-fingerprint-corey",
       "created_at": "2026-06-29T00:00:00Z",

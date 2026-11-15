@@ -1,6 +1,6 @@
 # Demo Walkthrough
 
-The SafeGate Edge End-to-End Demo is a deterministic runner that executes the entire decision lifecycle in a single command. It proves that an approval binds to one exact canonical action hash and that mutated requests are reliably blocked.
+The SafeGate Edge demo runs the simulated approval workflow in a single command. It checks a simulated approval against one exact canonical action hash and records why a changed action is blocked. A matching demo result is for demonstration only. Normal verification denies approval-required actions because the current packets lack authenticated approval evidence.
 
 ## Running the Demo
 
@@ -14,12 +14,12 @@ python -m safegate_edge.cli demo run --output-dir examples/demo_runs/safegate_de
 
 When you run the command, the following simulated sequence occurs:
 
-1. **Review Request Generation**: An agent requests to run a destructive command (`rm ./customer_exports/*.csv`). SafeGate packages this into a `review_packet.json`.
-2. **Approval Simulation**: A simulated human approver reviews the packet and grants approval, generating a cryptographically signed `generated_approval.json`. A rejected approval is also generated (`generated_denied_approval.json`) for completeness.
-3. **Original Action Verification**: The agent attempts to execute the exact action that was approved. SafeGate verifies the canonical hash and **allows** the action (`verify_original_allowed.json`).
-4. **Mutated Action Verification**: The agent attempts to execute a *mutated* action (`rm -rf /`) using the *original* approval packet. SafeGate computes the canonical hash, detects the mismatch, and **blocks** the action (`verify_mutated_blocked.json`).
-5. **Denied Approval Verification**: The agent attempts to execute the original action, but the approval was denied. SafeGate reads the denial and **blocks** the action (`verify_denied_blocked.json`).
-6. **Evidence Export**: SafeGate exports a tamper-evident, cryptographically chained `evidence_bundle/` documenting the complete lifecycle of the mutated blocked path. This proves to auditors exactly why the action was blocked.
+1. **Review request.** SafeGate packages the proposed action and its canonical hash in `review_packet.json`.
+2. **Simulated decision.** The demo writes `generated_approval.json` and `generated_denied_approval.json` for a configured approver ID. Both packets record the action hash and policy context.
+3. **Original action.** The demo verifier checks the unchanged action, the evaluated policy and the registry. It records `simulated_allowed` with reason `valid_simulated_approval` in `verify_original_allowed.json`.
+4. **Changed action.** The demo verifier checks the original simulated packet against a changed request. The hash mismatch blocks the action in `verify_mutated_blocked.json`.
+5. **Denied decision.** The verifier blocks the unchanged action when supplied with the denied packet and writes `verify_denied_blocked.json`.
+6. **Evidence export.** The demo exports `evidence_bundle/` with the decision trace for the changed request.
 
 ## Exploring the Artifacts
 

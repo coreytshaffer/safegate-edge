@@ -10,28 +10,28 @@ Ensure your terminal is clear and you are in the project root (`safegate_edge`).
 "We want AI agents to execute complex tasks, but we can't let them unilaterally run destructive commands or mutate high-risk actions after approval."
 
 **[10–25s: What SafeGate does]**
-"SafeGate Edge is a local approval gateway. When an agent proposes a high-risk action, SafeGate turns the request into a canonical action hash and asks a human for approval. The human is not approving a vague intent—they are reviewing a specific action and hash."
+"SafeGate Edge checks an agent's proposed action against policy. It records the specific action and its canonical hash in a review packet. Normal verification denies actions that require approval because the current packets lack authenticated approval evidence."
 
 **[25–45s: Run demo command]**
 *(Type and run the command)*
 ```bash
 python -m safegate_edge.cli demo run --output-dir examples/demo_runs/safegate_demo
 ```
-"Let's run the end-to-end demo. This simulates the entire lifecycle: generating a review packet, simulating an approval bound to the exact canonical hash, and verifying execution."
+"The demo generates a review packet, records a simulated decision for its action hash, and checks the result."
 
 **[45–65s: Show demo_summary.json results]**
 *(Print or open the summary file)*
 ```bash
 cat examples/demo_runs/safegate_demo/demo_summary.json
 ```
-"As you can see, when the agent tries to execute the original, unchanged action, SafeGate allows it. But if the agent attempts a mutated action using the exact same approval, the canonical hash breaks and SafeGate blocks it immediately. A denied approval is also blocked."
+"The unchanged action passes the checks in this explicit demo. That result is for demonstration only. The changed request fails because the action hashes differ. The verifier also blocks a denied packet."
 
 **[65–80s: Explain evidence bundle]**
 *(Show the evidence bundle files)*
 ```bash
 ls examples/demo_runs/safegate_demo/evidence_bundle/
 ```
-"Every decision generates a tamper-evident evidence bundle. This hash-linked trace proves to auditors exactly what was requested, what was approved, what was attempted, and why the action was intercepted."
+"The evidence bundle records the decision trace for the changed request, including why verification blocked it."
 
 **[80–90s: Hardware boundary / next milestone]**
-"This prototype uses simulated approval packets. The safety property being demonstrated is that approval binds to one exact canonical action hash. Hardware-backed human presence is the next milestone."
+"The demo shows how SafeGate compares one canonical action hash with the recorded decision. Approval-required actions need authenticated evidence before execution. Hardware-backed verification is future work."

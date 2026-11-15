@@ -1,6 +1,6 @@
 import json
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from safegate_edge.approve import create_approval_packet
 
 def load_fixture(path):
@@ -20,7 +20,7 @@ def approvers():
     return load_fixture("examples/config/approvers.json")
 
 def test_create_approval_packet_approved(review_packet, approvers):
-    packet = create_approval_packet(review_packet, "corey", approvers, "approved")
+    packet = create_approval_packet(review_packet, "corey", approvers, "approved", now_iso=review_packet["created_at"])
     
     assert packet["schema_version"] == "approval_packet.v1"
     assert packet["review_id"] == review_packet["review_id"]
@@ -34,24 +34,24 @@ def test_create_approval_packet_approved(review_packet, approvers):
     assert packet["approval_id"].startswith("apr-")
     
 def test_create_approval_packet_denied(review_packet, approvers):
-    packet = create_approval_packet(review_packet, "corey", approvers, "denied")
+    packet = create_approval_packet(review_packet, "corey", approvers, "denied", now_iso=review_packet["created_at"])
     
     assert packet["approval_status"] == "denied"
     assert packet["metadata"]["approval_decision"] == "denied"
 
 def test_create_approval_packet_unknown_approver(review_packet, approvers):
     with pytest.raises(ValueError, match="Unknown approver: unknown_user"):
-        create_approval_packet(review_packet, "unknown_user", approvers, "approved")
+        create_approval_packet(review_packet, "unknown_user", approvers, "approved", now_iso=review_packet["created_at"])
         
 def test_create_approval_packet_inactive_approver(review_packet, approvers):
     # Set corey to inactive
     approvers["approvers"][0]["status"] = "inactive"
     with pytest.raises(ValueError, match="Approver is not active: corey"):
-        create_approval_packet(review_packet, "corey", approvers, "approved")
+        create_approval_packet(review_packet, "corey", approvers, "approved", now_iso=review_packet["created_at"])
         
 def test_create_approval_packet_expired_review(review_packet, approvers):
-    # Create a time far in the future
-    future_time = (datetime.now(timezone.utc) + timedelta(days=365)).isoformat().replace("+00:00", "Z")
+    expires_at = datetime.fromisoformat(review_packet["expires_at"].replace("Z", "+00:00"))
+    future_time = (expires_at + timedelta(minutes=1)).isoformat().replace("+00:00", "Z")
     
     with pytest.raises(ValueError, match="Review packet has expired."):
         create_approval_packet(review_packet, "corey", approvers, "approved", now_iso=future_time)
@@ -66,5 +66,8 @@ def test_create_approval_packet_not_pending(review_packet, approvers):
         create_approval_packet(review_packet, "corey", approvers, "approved")
 
 def test_create_approval_packet_custom_method(review_packet, approvers):
-    packet = create_approval_packet(review_packet, "corey", approvers, "approved", approval_method="placeholder_security_key")
+    packet = create_approval_packet(
+        review_packet, "corey", approvers, "approved",
+        approval_method="placeholder_security_key", now_iso=review_packet["created_at"],
+    )
     assert packet["approval_method"] == "placeholder_security_key"
